@@ -139,7 +139,9 @@ const AdminPanel = () => {
   const toggleSetting = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: boolean }) => {
       if (!adminSettings?.id) return;
-      const { error } = await supabase.from("admin_settings").update({ [key]: value }).eq("id", adminSettings.id);
+      const updateObj: Record<string, boolean> = {};
+      updateObj[key] = value;
+      const { error } = await supabase.from("admin_settings").update(updateObj as any).eq("id", adminSettings.id);
       if (error) throw error;
     },
     onSuccess: () => {
