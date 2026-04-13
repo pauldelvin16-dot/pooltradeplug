@@ -14,16 +14,431 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_settings: {
+        Row: {
+          deposit_countdown_minutes: number
+          deposits_enabled: boolean
+          id: string
+          mt5_enabled: boolean
+          pools_enabled: boolean
+          registrations_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          deposit_countdown_minutes?: number
+          deposits_enabled?: boolean
+          id?: string
+          mt5_enabled?: boolean
+          pools_enabled?: boolean
+          registrations_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          deposit_countdown_minutes?: number
+          deposits_enabled?: boolean
+          id?: string
+          mt5_enabled?: boolean
+          pools_enabled?: boolean
+          registrations_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crypto_addresses: {
+        Row: {
+          address: string
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          label: string | null
+          network: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          network?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          network?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      deposits: {
+        Row: {
+          admin_note: string | null
+          amount: number
+          created_at: string
+          crypto_address_id: string | null
+          currency: string
+          expires_at: string | null
+          id: string
+          network: string
+          proof_url: string | null
+          status: Database["public"]["Enums"]["deposit_status"]
+          txid: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount: number
+          created_at?: string
+          crypto_address_id?: string | null
+          currency?: string
+          expires_at?: string | null
+          id?: string
+          network?: string
+          proof_url?: string | null
+          status?: Database["public"]["Enums"]["deposit_status"]
+          txid?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount?: number
+          created_at?: string
+          crypto_address_id?: string | null
+          currency?: string
+          expires_at?: string | null
+          id?: string
+          network?: string
+          proof_url?: string | null
+          status?: Database["public"]["Enums"]["deposit_status"]
+          txid?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposits_crypto_address_id_fkey"
+            columns: ["crypto_address_id"]
+            isOneToOne: false
+            referencedRelation: "crypto_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mt5_accounts: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          current_usage: number | null
+          id: string
+          max_allocation: number | null
+          mt5_login: string
+          mt5_server: string | null
+          status: Database["public"]["Enums"]["mt5_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          current_usage?: number | null
+          id?: string
+          max_allocation?: number | null
+          mt5_login: string
+          mt5_server?: string | null
+          status?: Database["public"]["Enums"]["mt5_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          current_usage?: number | null
+          id?: string
+          max_allocation?: number | null
+          mt5_login?: string
+          mt5_server?: string | null
+          status?: Database["public"]["Enums"]["mt5_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mt5_bookings: {
+        Row: {
+          admin_note: string | null
+          booking_fee: number
+          created_at: string
+          deposit_id: string | null
+          id: string
+          mt5_account_id: string
+          scheduled_at: string | null
+          status: Database["public"]["Enums"]["booking_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          booking_fee?: number
+          created_at?: string
+          deposit_id?: string | null
+          id?: string
+          mt5_account_id: string
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          booking_fee?: number
+          created_at?: string
+          deposit_id?: string | null
+          id?: string
+          mt5_account_id?: string
+          scheduled_at?: string | null
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mt5_bookings_deposit_id_fkey"
+            columns: ["deposit_id"]
+            isOneToOne: false
+            referencedRelation: "deposits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mt5_bookings_mt5_account_id_fkey"
+            columns: ["mt5_account_id"]
+            isOneToOne: false
+            referencedRelation: "mt5_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pool_participants: {
+        Row: {
+          amount_invested: number
+          id: string
+          joined_at: string
+          pool_id: string
+          profit_share: number | null
+          user_id: string
+        }
+        Insert: {
+          amount_invested: number
+          id?: string
+          joined_at?: string
+          pool_id: string
+          profit_share?: number | null
+          user_id: string
+        }
+        Update: {
+          amount_invested?: number
+          id?: string
+          joined_at?: string
+          pool_id?: string
+          profit_share?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pool_participants_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pools: {
+        Row: {
+          created_at: string
+          current_participants: number
+          current_profit: number
+          description: string | null
+          duration_days: number
+          end_date: string | null
+          entry_amount: number
+          fallback_action: string | null
+          id: string
+          max_participants: number
+          name: string
+          start_date: string
+          status: Database["public"]["Enums"]["pool_status"]
+          target_profit: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_participants?: number
+          current_profit?: number
+          description?: string | null
+          duration_days?: number
+          end_date?: string | null
+          entry_amount: number
+          fallback_action?: string | null
+          id?: string
+          max_participants?: number
+          name: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["pool_status"]
+          target_profit: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_participants?: number
+          current_profit?: number
+          description?: string | null
+          duration_days?: number
+          end_date?: string | null
+          entry_amount?: number
+          fallback_action?: string | null
+          id?: string
+          max_participants?: number
+          name?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["pool_status"]
+          target_profit?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          balance: number
+          created_at: string
+          email: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          telegram_chat_id: string | null
+          telegram_linked: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          balance?: number
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          telegram_chat_id?: string | null
+          telegram_linked?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          balance?: number
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          telegram_chat_id?: string | null
+          telegram_linked?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      withdrawals: {
+        Row: {
+          admin_note: string | null
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          network: string
+          status: Database["public"]["Enums"]["withdrawal_status"]
+          updated_at: string
+          user_id: string
+          wallet_address: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          network?: string
+          status?: Database["public"]["Enums"]["withdrawal_status"]
+          updated_at?: string
+          user_id: string
+          wallet_address: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          network?: string
+          status?: Database["public"]["Enums"]["withdrawal_status"]
+          updated_at?: string
+          user_id?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "trader" | "user"
+      booking_status: "pending" | "paid" | "approved" | "rejected"
+      deposit_status: "pending" | "confirmed" | "rejected" | "expired"
+      mt5_status: "available" | "active" | "disabled" | "pending_review"
+      pool_status: "active" | "completed" | "failed" | "cancelled"
+      withdrawal_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "processing"
+        | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +565,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "manager", "trader", "user"],
+      booking_status: ["pending", "paid", "approved", "rejected"],
+      deposit_status: ["pending", "confirmed", "rejected", "expired"],
+      mt5_status: ["available", "active", "disabled", "pending_review"],
+      pool_status: ["active", "completed", "failed", "cancelled"],
+      withdrawal_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "processing",
+        "completed",
+      ],
+    },
   },
 } as const
