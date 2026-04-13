@@ -1,8 +1,11 @@
 import { Outlet } from "react-router-dom";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import MobileBottomNav from "@/components/MobileBottomNav";
+import { useAuth } from "@/hooks/useAuth";
 
 const Dashboard = () => {
+  const { profile } = useAuth();
+
   return (
     <div className="flex min-h-screen">
       <DashboardSidebar />

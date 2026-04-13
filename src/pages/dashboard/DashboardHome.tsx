@@ -1,109 +1,132 @@
 import { DollarSign, TrendingUp, BarChart3, Users, ArrowUpRight, ArrowDownRight, Bell } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import StatCard from "@/components/StatCard";
-import StatusBadge from "@/components/StatusBadge";
-
-const recentActivity = [
-  { action: "Deposit confirmed", amount: "+$5,000", time: "2 min ago", type: "positive" as const },
-  { action: "Pool #23 joined", amount: "-$1,000", time: "1 hr ago", type: "negative" as const },
-  { action: "MT5-4821 assigned", amount: "", time: "3 hr ago", type: "neutral" as const },
-  { action: "Profit distributed", amount: "+$340", time: "1 day ago", type: "positive" as const },
-];
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { useEffect, useState } from "react";
 
 const DashboardHome = () => {
+  const { user, profile } = useAuth();
+  const [marketData, setMarketData] = useState<any[]>([]);
+
+  const { data: deposits = [] } = useQuery({
+    queryKey: ["my-deposits", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("deposits").select("*").order("created_at", { ascending: false }).limit(10);
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const { data: mt5Accounts = [] } = useQuery({
+    queryKey: ["my-mt5", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("mt5_accounts").select("*");
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const { data: poolParticipations = [] } = useQuery({
+    queryKey: ["my-pools", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("pool_participants").select("*, pools(*)");
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch CoinGecko market data for chart
+  useEffect(() => {
+    fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=7&interval=daily")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.prices) {
+          setMarketData(
+            d.prices.map(([ts, price]: [number, number]) => ({
+              date: new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+              BTC: Math.round(price),
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const confirmedDeposits = deposits.filter((d: any) => d.status === "confirmed");
+  const totalDeposited = confirmedDeposits.reduce((sum: number, d: any) => sum + parseFloat(d.amount), 0);
+
+  // Build deposit chart data
+  const depositChartData = deposits
+    .filter((d: any) => d.status === "confirmed")
+    .slice(0, 7)
+    .reverse()
+    .map((d: any) => ({
+      date: new Date(d.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      amount: parseFloat(d.amount),
+    }));
+
   return (
     <div className="p-4 md:p-8 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold">
-            Welcome back, <span className="gold-text">Trader</span>
+            Welcome back, <span className="gold-text">{profile?.first_name || "Trader"}</span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Here's your portfolio overview</p>
         </div>
-        <button className="relative p-2 rounded-lg hover:bg-secondary transition-colors">
-          <Bell className="w-5 h-5 text-muted-foreground" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-        </button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={DollarSign} title="Total Balance" value="$24,580.00" change="+12.5% this month" changeType="positive" />
-        <StatCard icon={TrendingUp} title="Total Profit" value="$3,240.50" change="+8.2% this week" changeType="positive" />
-        <StatCard icon={BarChart3} title="Active MT5" value="3" change="2 available" changeType="neutral" />
-        <StatCard icon={Users} title="Active Pools" value="2" change="1 completing soon" changeType="neutral" />
+        <StatCard icon={DollarSign} title="Balance" value={`$${parseFloat(profile?.balance || "0").toLocaleString("en-US", { minimumFractionDigits: 2 })}`} change="Available funds" changeType="neutral" />
+        <StatCard icon={TrendingUp} title="Total Deposited" value={`$${totalDeposited.toLocaleString()}`} change={`${confirmedDeposits.length} deposits`} changeType="positive" />
+        <StatCard icon={BarChart3} title="MT5 Accounts" value={String(mt5Accounts.length)} change={`${mt5Accounts.filter((a: any) => a.status === "active").length} active`} changeType="neutral" />
+        <StatCard icon={Users} title="Active Pools" value={String(poolParticipations.length)} change="Joined pools" changeType="neutral" />
       </div>
 
-      {/* Portfolio Chart Placeholder + Activity */}
       <div className="grid lg:grid-cols-3 gap-6">
+        {/* BTC Market Chart */}
         <div className="lg:col-span-2 glass-card p-6">
-          <h3 className="font-semibold mb-4">Portfolio Performance</h3>
-          <div className="h-64 flex items-center justify-center text-muted-foreground text-sm border border-dashed border-border rounded-lg">
-            <div className="text-center">
-              <BarChart3 className="w-10 h-10 mx-auto mb-2 text-primary/50" />
-              <p>Interactive chart will appear here</p>
-              <p className="text-xs mt-1">Connect backend to see live data</p>
-            </div>
-          </div>
+          <h3 className="font-semibold mb-4">BTC/USD — 7 Day Chart</h3>
+          {marketData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={marketData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))" }}
+                  formatter={(value: number) => [`$${value.toLocaleString()}`, "BTC"]}
+                />
+                <Line type="monotone" dataKey="BTC" stroke="hsl(43, 96%, 56%)" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">Loading market data...</div>
+          )}
         </div>
 
+        {/* Deposit History Bar Chart */}
         <div className="glass-card p-6">
-          <h3 className="font-semibold mb-4">Recent Activity</h3>
-          <div className="space-y-4">
-            {recentActivity.map((item, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    item.type === "positive" ? "bg-success/10" : item.type === "negative" ? "bg-destructive/10" : "bg-secondary"
-                  }`}>
-                    {item.type === "positive" ? <ArrowUpRight className="w-4 h-4 text-success" /> :
-                     item.type === "negative" ? <ArrowDownRight className="w-4 h-4 text-destructive" /> :
-                     <BarChart3 className="w-4 h-4 text-muted-foreground" />}
-                  </div>
-                  <div>
-                    <p className="text-sm">{item.action}</p>
-                    <p className="text-xs text-muted-foreground">{item.time}</p>
-                  </div>
-                </div>
-                {item.amount && (
-                  <span className={`text-sm font-medium ${item.type === "positive" ? "text-success" : "text-destructive"}`}>
-                    {item.amount}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick MT5 Status */}
-      <div className="glass-card p-6">
-        <h3 className="font-semibold mb-4">MT5 Accounts</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-muted-foreground border-b border-border">
-                <th className="text-left py-3 font-medium">Account ID</th>
-                <th className="text-left py-3 font-medium">Status</th>
-                <th className="text-left py-3 font-medium">Max Allocation</th>
-                <th className="text-left py-3 font-medium">Usage</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {[
-                { id: "MT5-4821", status: "assigned" as const, max: "$10,000", usage: "65%" },
-                { id: "MT5-7392", status: "available" as const, max: "$25,000", usage: "0%" },
-                { id: "MT5-1058", status: "disabled" as const, max: "$5,000", usage: "—" },
-              ].map((acc) => (
-                <tr key={acc.id} className="hover:bg-secondary/30 transition-colors">
-                  <td className="py-3 font-mono text-xs">{acc.id}</td>
-                  <td className="py-3"><StatusBadge status={acc.status} /></td>
-                  <td className="py-3">{acc.max}</td>
-                  <td className="py-3">{acc.usage}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <h3 className="font-semibold mb-4">Recent Deposits</h3>
+          {depositChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={depositChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))" }}
+                />
+                <Bar dataKey="amount" fill="hsl(43, 96%, 56%)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
+              <p className="text-center text-xs">No confirmed deposits yet</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

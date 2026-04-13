@@ -5,15 +5,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Signup = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/dashboard");
+    if (!agreed) return;
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { first_name: firstName, last_name: lastName },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Account created! Check your email to verify.");
+      navigate("/dashboard");
+    }
   };
 
   return (
@@ -34,21 +57,21 @@ const Signup = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>First Name</Label>
-                <Input placeholder="John" className="bg-secondary/50 border-border focus:border-primary" />
+                <Input placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="bg-secondary/50 border-border focus:border-primary" required />
               </div>
               <div className="space-y-2">
                 <Label>Last Name</Label>
-                <Input placeholder="Doe" className="bg-secondary/50 border-border focus:border-primary" />
+                <Input placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} className="bg-secondary/50 border-border focus:border-primary" required />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input type="email" placeholder="trader@example.com" className="bg-secondary/50 border-border focus:border-primary" />
+              <Input type="email" placeholder="trader@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-secondary/50 border-border focus:border-primary" required />
             </div>
             <div className="space-y-2">
               <Label>Password</Label>
               <div className="relative">
-                <Input type={showPassword ? "text" : "password"} placeholder="Min 8 characters" className="bg-secondary/50 border-border focus:border-primary pr-10" />
+                <Input type={showPassword ? "text" : "password"} placeholder="Min 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-secondary/50 border-border focus:border-primary pr-10" required minLength={6} />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -63,8 +86,8 @@ const Signup = () => {
                 <button type="button" onClick={() => navigate("/privacy")} className="text-primary hover:underline">Privacy Policy</button>
               </label>
             </div>
-            <Button type="submit" disabled={!agreed} className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90 h-11 disabled:opacity-40">
-              Create Account
+            <Button type="submit" disabled={!agreed || loading} className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90 h-11 disabled:opacity-40">
+              {loading ? "Creating Account..." : "Create Account"}
             </Button>
           </form>
 
