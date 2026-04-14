@@ -22,7 +22,14 @@ export type Database = {
           mt5_enabled: boolean
           pools_enabled: boolean
           registrations_enabled: boolean
+          stat_active_traders: string | null
+          stat_total_volume: string | null
+          stat_trading_pools: string | null
+          stat_uptime: string | null
+          telegram_admin_chat_id: string | null
+          telegram_bot_token: string | null
           updated_at: string
+          withdrawals_enabled: boolean
         }
         Insert: {
           deposit_countdown_minutes?: number
@@ -31,7 +38,14 @@ export type Database = {
           mt5_enabled?: boolean
           pools_enabled?: boolean
           registrations_enabled?: boolean
+          stat_active_traders?: string | null
+          stat_total_volume?: string | null
+          stat_trading_pools?: string | null
+          stat_uptime?: string | null
+          telegram_admin_chat_id?: string | null
+          telegram_bot_token?: string | null
           updated_at?: string
+          withdrawals_enabled?: boolean
         }
         Update: {
           deposit_countdown_minutes?: number
@@ -40,7 +54,14 @@ export type Database = {
           mt5_enabled?: boolean
           pools_enabled?: boolean
           registrations_enabled?: boolean
+          stat_active_traders?: string | null
+          stat_total_volume?: string | null
+          stat_trading_pools?: string | null
+          stat_uptime?: string | null
+          telegram_admin_chat_id?: string | null
+          telegram_bot_token?: string | null
           updated_at?: string
+          withdrawals_enabled?: boolean
         }
         Relationships: []
       }
@@ -226,6 +247,38 @@ export type Database = {
           },
         ]
       }
+      pool_chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          pool_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          pool_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          pool_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pool_chat_messages_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pool_participants: {
         Row: {
           amount_invested: number
@@ -274,9 +327,12 @@ export type Database = {
           id: string
           max_participants: number
           name: string
+          profit_split_percentage: number | null
+          refund_policy: string | null
           start_date: string
           status: Database["public"]["Enums"]["pool_status"]
           target_profit: number
+          traded_symbol: string | null
           updated_at: string
         }
         Insert: {
@@ -291,9 +347,12 @@ export type Database = {
           id?: string
           max_participants?: number
           name: string
+          profit_split_percentage?: number | null
+          refund_policy?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["pool_status"]
           target_profit: number
+          traded_symbol?: string | null
           updated_at?: string
         }
         Update: {
@@ -308,9 +367,12 @@ export type Database = {
           id?: string
           max_participants?: number
           name?: string
+          profit_split_percentage?: number | null
+          refund_policy?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["pool_status"]
           target_profit?: number
+          traded_symbol?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -354,6 +416,48 @@ export type Database = {
           telegram_linked?: boolean
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_bot_state: {
+        Row: {
+          id: number
+          update_offset: number
+          updated_at: string
+        }
+        Insert: {
+          id: number
+          update_offset?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          update_offset?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telegram_messages: {
+        Row: {
+          chat_id: number
+          created_at: string
+          raw_update: Json
+          text: string | null
+          update_id: number
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          raw_update: Json
+          text?: string | null
+          update_id: number
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          raw_update?: Json
+          text?: string | null
+          update_id?: number
         }
         Relationships: []
       }

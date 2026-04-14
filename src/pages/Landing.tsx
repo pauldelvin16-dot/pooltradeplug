@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Shield, TrendingUp, Users, Zap, BarChart3, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const features = [
   { icon: BarChart3, title: "MT5 Management", desc: "Enterprise-grade MetaTrader 5 account management with real-time monitoring" },
@@ -13,6 +15,23 @@ const features = [
 
 const Landing = () => {
   const navigate = useNavigate();
+
+  // Fetch admin-controlled stats
+  const { data: settings } = useQuery({
+    queryKey: ["landing-stats"],
+    queryFn: async () => {
+      const { data } = await supabase.from("admin_settings").select("*").limit(1).single();
+      return data;
+    },
+  });
+
+  const s = settings as any;
+  const stats = [
+    { label: "Active Traders", value: s?.stat_active_traders || "12,840+" },
+    { label: "Total Volume", value: s?.stat_total_volume || "$284M+" },
+    { label: "Trading Pools", value: s?.stat_trading_pools || "156" },
+    { label: "Uptime", value: s?.stat_uptime || "99.99%" },
+  ];
 
   return (
     <div className="min-h-screen">
@@ -62,14 +81,9 @@ const Landing = () => {
             </div>
           </div>
 
-          {/* Stats */}
+          {/* Stats — admin controlled */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-20 max-w-4xl mx-auto animate-fade-in">
-            {[
-              { label: "Active Traders", value: "12,840+" },
-              { label: "Total Volume", value: "$284M+" },
-              { label: "Trading Pools", value: "156" },
-              { label: "Uptime", value: "99.99%" },
-            ].map((stat) => (
+            {stats.map((stat) => (
               <div key={stat.label} className="glass-card p-4 text-center">
                 <p className="text-2xl font-bold gold-text">{stat.value}</p>
                 <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
