@@ -18,6 +18,15 @@ import ProfilePage from "./pages/dashboard/ProfilePage";
 import AnalyticsPage from "./pages/dashboard/AnalyticsPage";
 import SettingsPage from "./pages/dashboard/SettingsPage";
 import AdminPanel from "./pages/AdminPanel";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminMT5 from "./pages/admin/AdminMT5";
+import AdminDeposits from "./pages/admin/AdminDeposits";
+import AdminWithdrawals from "./pages/admin/AdminWithdrawals";
+import AdminPools from "./pages/admin/AdminPools";
+import AdminChat from "./pages/admin/AdminChat";
+import AdminTelegram from "./pages/admin/AdminTelegram";
+import AdminSettings from "./pages/admin/AdminSettings";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import RiskPage from "./pages/RiskPage";
@@ -46,7 +55,17 @@ const App = () => (
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
-            <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminPanel /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminPanel /></ProtectedRoute>}>
+              <Route index element={<AdminOverview />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="mt5" element={<AdminMT5 />} />
+              <Route path="deposits" element={<AdminDeposits />} />
+              <Route path="withdrawals" element={<AdminWithdrawals />} />
+              <Route path="pools" element={<AdminPools />} />
+              <Route path="chat" element={<AdminChat />} />
+              <Route path="telegram" element={<AdminTelegram />} />
+              <Route path="settings" element={<AdminSettings />} />
+            </Route>
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/risk" element={<RiskPage />} />
