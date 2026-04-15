@@ -4,6 +4,15 @@ const GATEWAY_URL = 'https://connector-gateway.lovable.dev/telegram';
 const MAX_RUNTIME_MS = 55_000;
 const MIN_REMAINING_MS = 5_000;
 
+function generateTempPassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let result = '';
+  for (let i = 0; i < 10; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 Deno.serve(async () => {
   const startTime = Date.now();
 
@@ -14,14 +23,12 @@ Deno.serve(async () => {
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // Get telegram token from admin_settings
   const { data: settings } = await supabase.from('admin_settings').select('telegram_bot_token, telegram_admin_chat_id').limit(1).single();
   const TELEGRAM_API_KEY = settings?.telegram_bot_token;
   if (!TELEGRAM_API_KEY) return new Response(JSON.stringify({ error: 'Telegram bot token not configured in admin settings' }), { status: 200 });
 
   let totalProcessed = 0;
 
-  // Read offset
   const { data: state, error: stateErr } = await supabase.from('telegram_bot_state').select('update_offset').eq('id', 1).single();
   if (stateErr) return new Response(JSON.stringify({ error: stateErr.message }), { status: 500 });
 
@@ -45,13 +52,13 @@ Deno.serve(async () => {
     const cmd = text.trim().toLowerCase().split(' ')[0];
     const args = text.trim().split(' ').slice(1);
 
-    // Find linked profile
     const { data: profile } = await supabase.from('profiles').select('*').eq('telegram_chat_id', String(chatId)).single();
 
     const keyboard = {
       keyboard: [
         [{ text: '💰 Balance' }, { text: '📥 Deposit' }],
-        [{ text: '🏊 Pools' }, { text: '❓ Help' }],
+        [{ text: '🏊 Pools' }, { text: '🔑 Reset Password' }],
+        [{ text: '❓ Help' }],
       ],
       resize_keyboard: true,
     };
@@ -126,13 +133,37 @@ Deno.serve(async () => {
         const symbol = pool.traded_symbol ? ` 📊 ${pool.traded_symbol}` : '';
         const split = pool.profit_split_percentage || 70;
         msg += `<b>${pool.name}</b>${symbol}\n`;
-        msg += `💵 Entry: $${parseFloat(pool.entry_amount).toLocaleString()}\n`;
+        msg += `💵 Entry: $${parseFloat(pool.entry_amount as any).toLocaleString()}\n`;
         msg += `👥 ${pool.current_participants}/${pool.max_participants} participants\n`;
-        msg += `📈 Profit: $${parseFloat(pool.current_profit).toLocaleString()} / $${parseFloat(pool.target_profit).toLocaleString()}\n`;
+        msg += `📈 Profit: $${parseFloat(pool.current_profit as any).toLocaleString()} / $${parseFloat(pool.target_profit as any).toLocaleString()}\n`;
         msg += `💰 ${split}% profit split to you\n\n`;
       }
       msg += '💡 Log in to TradeLux to join a pool!';
       await sendTelegramMessage(chatId, msg);
+    } else if (cmd === '/resetpassword' || text === '🔑 Reset Password') {
+      if (!profile) {
+        await sendTelegramMessage(chatId, '❌ Account not linked. Use <code>/link your@email.com</code> first to reset your password.');
+        return;
+      }
+      // Generate temp password and update via admin API
+      const tempPassword = generateTempPassword();
+      const { data: userData } = await supabase.auth.admin.listUsers();
+      const authUser = userData?.users?.find((u: any) => u.email === profile.email);
+      if (!authUser) {
+        await sendTelegramMessage(chatId, '❌ Could not find your auth account. Please contact support.');
+        return;
+      }
+      const { error: resetErr } = await supabase.auth.admin.updateUserById(authUser.id, { password: tempPassword });
+      if (resetErr) {
+        await sendTelegramMessage(chatId, '❌ Failed to reset password. Please try again later.');
+        return;
+      }
+      await sendTelegramMessage(chatId,
+        `🔑 <b>Password Reset</b>\n\n` +
+        `Your temporary password:\n<code>${tempPassword}</code>\n\n` +
+        `⚠️ <b>Important:</b> Please log in and change this password immediately in your Profile settings.\n\n` +
+        `This password is temporary and should not be shared with anyone.`
+      );
     } else if (cmd === '/help' || text === '❓ Help') {
       await sendTelegramMessage(chatId,
         `❓ <b>TradeLux Bot Commands</b>\n\n` +
@@ -141,6 +172,7 @@ Deno.serve(async () => {
         `/balance — Check balance\n` +
         `/deposit — Get deposit addresses\n` +
         `/pools — View active pools\n` +
+        `/resetpassword — Get temporary password\n` +
         `/help — Show this help\n\n` +
         `Or use the keyboard buttons below! 👇`,
         keyboard
@@ -175,7 +207,6 @@ Deno.serve(async () => {
     const updates = data.result ?? [];
     if (updates.length === 0) continue;
 
-    // Process each message
     for (const update of updates) {
       if (update.message?.text) {
         try {
@@ -186,7 +217,6 @@ Deno.serve(async () => {
       }
     }
 
-    // Store messages
     const rows = updates
       .filter((u: any) => u.message)
       .map((u: any) => ({
