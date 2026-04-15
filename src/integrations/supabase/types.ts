@@ -18,6 +18,9 @@ export type Database = {
         Row: {
           deposit_countdown_minutes: number
           deposits_enabled: boolean
+          first_deposit_bonus_amount: number
+          first_deposit_bonus_enabled: boolean
+          first_deposit_min_amount: number
           id: string
           mt5_enabled: boolean
           pools_enabled: boolean
@@ -27,6 +30,7 @@ export type Database = {
           stat_trading_pools: string | null
           stat_uptime: string | null
           telegram_admin_chat_id: string | null
+          telegram_bot_link: string | null
           telegram_bot_token: string | null
           updated_at: string
           withdrawals_enabled: boolean
@@ -34,6 +38,9 @@ export type Database = {
         Insert: {
           deposit_countdown_minutes?: number
           deposits_enabled?: boolean
+          first_deposit_bonus_amount?: number
+          first_deposit_bonus_enabled?: boolean
+          first_deposit_min_amount?: number
           id?: string
           mt5_enabled?: boolean
           pools_enabled?: boolean
@@ -43,6 +50,7 @@ export type Database = {
           stat_trading_pools?: string | null
           stat_uptime?: string | null
           telegram_admin_chat_id?: string | null
+          telegram_bot_link?: string | null
           telegram_bot_token?: string | null
           updated_at?: string
           withdrawals_enabled?: boolean
@@ -50,6 +58,9 @@ export type Database = {
         Update: {
           deposit_countdown_minutes?: number
           deposits_enabled?: boolean
+          first_deposit_bonus_amount?: number
+          first_deposit_bonus_enabled?: boolean
+          first_deposit_min_amount?: number
           id?: string
           mt5_enabled?: boolean
           pools_enabled?: boolean
@@ -59,6 +70,7 @@ export type Database = {
           stat_trading_pools?: string | null
           stat_uptime?: string | null
           telegram_admin_chat_id?: string | null
+          telegram_bot_link?: string | null
           telegram_bot_token?: string | null
           updated_at?: string
           withdrawals_enabled?: boolean
@@ -383,6 +395,7 @@ export type Database = {
           balance: number
           created_at: string
           email: string | null
+          first_deposit_claimed: boolean
           first_name: string | null
           id: string
           last_name: string | null
@@ -396,6 +409,7 @@ export type Database = {
           balance?: number
           created_at?: string
           email?: string | null
+          first_deposit_claimed?: boolean
           first_name?: string | null
           id?: string
           last_name?: string | null
@@ -409,6 +423,7 @@ export type Database = {
           balance?: number
           created_at?: string
           email?: string | null
+          first_deposit_claimed?: boolean
           first_name?: string | null
           id?: string
           last_name?: string | null

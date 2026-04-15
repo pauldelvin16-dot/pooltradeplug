@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ToggleLeft, ToggleRight, Plus, Save } from "lucide-react";
+import { ToggleLeft, ToggleRight, Plus, Save, Gift, Bot, Globe, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const AdminSettings = () => {
@@ -26,15 +26,16 @@ const AdminSettings = () => {
     },
   });
 
-  // Landing stats state
   const [statTraders, setStatTraders] = useState("");
   const [statVolume, setStatVolume] = useState("");
   const [statPools, setStatPools] = useState("");
   const [statUptime, setStatUptime] = useState("");
-
-  // Telegram config
   const [tgToken, setTgToken] = useState("");
   const [tgChatId, setTgChatId] = useState("");
+  const [tgBotLink, setTgBotLink] = useState("");
+  const [bonusEnabled, setBonusEnabled] = useState(false);
+  const [bonusMin, setBonusMin] = useState("");
+  const [bonusAmount, setBonusAmount] = useState("");
 
   useEffect(() => {
     if (adminSettings) {
@@ -45,10 +46,13 @@ const AdminSettings = () => {
       setStatUptime(s.stat_uptime || "");
       setTgToken(s.telegram_bot_token || "");
       setTgChatId(s.telegram_admin_chat_id || "");
+      setTgBotLink(s.telegram_bot_link || "");
+      setBonusEnabled(s.first_deposit_bonus_enabled || false);
+      setBonusMin(String(s.first_deposit_min_amount || 100));
+      setBonusAmount(String(s.first_deposit_bonus_amount || 10));
     }
   }, [adminSettings]);
 
-  // Mutations
   const toggleSetting = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: boolean }) => {
       if (!adminSettings?.id) return;
@@ -88,16 +92,52 @@ const AdminSettings = () => {
       const { error } = await supabase.from("admin_settings").update({
         telegram_bot_token: tgToken || null,
         telegram_admin_chat_id: tgChatId || null,
+        telegram_bot_link: tgBotLink || null,
       } as any).eq("id", adminSettings.id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Telegram config updated!");
       queryClient.invalidateQueries({ queryKey: ["admin-settings-panel"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
     },
   });
 
-  // Crypto addresses
+  const removeTelegramBot = useMutation({
+    mutationFn: async () => {
+      if (!adminSettings?.id) return;
+      const { error } = await supabase.from("admin_settings").update({
+        telegram_bot_token: null,
+        telegram_admin_chat_id: null,
+        telegram_bot_link: null,
+      } as any).eq("id", adminSettings.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Telegram bot removed!");
+      setTgToken(""); setTgChatId(""); setTgBotLink("");
+      queryClient.invalidateQueries({ queryKey: ["admin-settings-panel"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
+    },
+  });
+
+  const updateBonus = useMutation({
+    mutationFn: async () => {
+      if (!adminSettings?.id) return;
+      const { error } = await supabase.from("admin_settings").update({
+        first_deposit_bonus_enabled: bonusEnabled,
+        first_deposit_min_amount: parseFloat(bonusMin) || 100,
+        first_deposit_bonus_amount: parseFloat(bonusAmount) || 10,
+      } as any).eq("id", adminSettings.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Bonus settings updated!");
+      queryClient.invalidateQueries({ queryKey: ["admin-settings-panel"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
+    },
+  });
+
   const [newAddress, setNewAddress] = useState("");
   const [newNetwork, setNewNetwork] = useState("TRC20");
   const [newCurrency, setNewCurrency] = useState("USDT");
@@ -137,6 +177,8 @@ const AdminSettings = () => {
     { key: "registrations_enabled", label: "New Registrations", desc: "Allow new users to sign up" },
   ];
 
+  const webhookUrl = `https://sqdkkbawutwyfmnvfqqk.supabase.co/functions/v1/telegram-poll`;
+
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-3xl">
       <h2 className="text-xl font-display font-bold">Platform Settings</h2>
@@ -172,9 +214,37 @@ const AdminSettings = () => {
         </Button>
       </div>
 
+      {/* First Deposit Bonus */}
+      <div className="glass-card p-6 space-y-4">
+        <h3 className="font-semibold flex items-center gap-2"><Gift className="w-4 h-4 text-primary" /> First Deposit Bonus</h3>
+        <p className="text-xs text-muted-foreground">Reward users for their first deposit above a minimum threshold.</p>
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <p className="text-sm">Enable First Deposit Bonus</p>
+            <p className="text-xs text-muted-foreground">Show bonus banner and auto-credit bonus</p>
+          </div>
+          <button onClick={() => { setBonusEnabled(!bonusEnabled); }}>
+            {bonusEnabled ? <ToggleRight className="w-6 h-6 text-success" /> : <ToggleLeft className="w-6 h-6 text-muted-foreground" />}
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Min Deposit Amount ($)</Label>
+            <Input type="number" value={bonusMin} onChange={(e) => setBonusMin(e.target.value)} className="bg-secondary/50 border-border" />
+          </div>
+          <div className="space-y-2">
+            <Label>Bonus Amount ($)</Label>
+            <Input type="number" value={bonusAmount} onChange={(e) => setBonusAmount(e.target.value)} className="bg-secondary/50 border-border" />
+          </div>
+        </div>
+        <Button size="sm" onClick={() => updateBonus.mutate()} disabled={updateBonus.isPending} className="gold-gradient text-primary-foreground font-semibold hover:opacity-90">
+          <Save className="w-4 h-4 mr-1" /> {updateBonus.isPending ? "Saving..." : "Save Bonus Settings"}
+        </Button>
+      </div>
+
       {/* Telegram Bot Config */}
       <div className="glass-card p-6 space-y-4">
-        <h3 className="font-semibold">Telegram Bot Configuration</h3>
+        <h3 className="font-semibold flex items-center gap-2"><Bot className="w-4 h-4 text-primary" /> Telegram Bot Configuration</h3>
         <p className="text-xs text-muted-foreground">Configure your Telegram bot for notifications and user interactions.</p>
         <div className="space-y-3">
           <div className="space-y-2">
@@ -185,10 +255,35 @@ const AdminSettings = () => {
             <Label>Admin Chat ID</Label>
             <Input value={tgChatId} onChange={(e) => setTgChatId(e.target.value)} placeholder="e.g. -1001234567890" className="bg-secondary/50 border-border font-mono text-xs" />
           </div>
+          <div className="space-y-2">
+            <Label>Bot Link (for users)</Label>
+            <Input value={tgBotLink} onChange={(e) => setTgBotLink(e.target.value)} placeholder="https://t.me/YourBotName" className="bg-secondary/50 border-border font-mono text-xs" />
+            <p className="text-xs text-muted-foreground">Users will be redirected here for password reset & account linking</p>
+          </div>
         </div>
-        <Button size="sm" onClick={() => updateTelegram.mutate()} disabled={updateTelegram.isPending} className="gold-gradient text-primary-foreground font-semibold hover:opacity-90">
-          <Save className="w-4 h-4 mr-1" /> {updateTelegram.isPending ? "Saving..." : "Save Telegram Config"}
-        </Button>
+
+        {/* Webhook URL */}
+        <div className="space-y-2 p-3 rounded-lg bg-secondary/30 border border-border">
+          <Label className="text-xs">Webhook URL (for reference)</Label>
+          <div className="flex items-center gap-2">
+            <code className="text-xs font-mono text-muted-foreground break-all flex-1">{webhookUrl}</code>
+            <Button size="sm" variant="ghost" className="shrink-0 text-xs" onClick={() => { navigator.clipboard.writeText(webhookUrl); toast.success("Copied!"); }}>
+              Copy
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">The bot uses long-polling (no webhook setup needed). This URL is called by the cron scheduler.</p>
+        </div>
+
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => updateTelegram.mutate()} disabled={updateTelegram.isPending} className="gold-gradient text-primary-foreground font-semibold hover:opacity-90">
+            <Save className="w-4 h-4 mr-1" /> {updateTelegram.isPending ? "Saving..." : "Save Telegram Config"}
+          </Button>
+          {(tgToken || tgChatId) && (
+            <Button size="sm" variant="destructive" onClick={() => removeTelegramBot.mutate()} disabled={removeTelegramBot.isPending}>
+              <Trash2 className="w-4 h-4 mr-1" /> {removeTelegramBot.isPending ? "Removing..." : "Remove Bot"}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Countdown Setting */}

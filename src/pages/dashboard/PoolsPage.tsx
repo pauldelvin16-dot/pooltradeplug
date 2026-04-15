@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Users, Target, Clock, Trophy, ArrowRight, MessageSquare, Send, TrendingUp, AlertTriangle } from "lucide-react";
+import { Users, Target, Clock, Trophy, ArrowRight, MessageSquare, Send, TrendingUp, AlertTriangle, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import StatusBadge from "@/components/StatusBadge";
+import SimulatedPoolHistory from "@/components/SimulatedPoolHistory";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
@@ -41,7 +42,6 @@ const PoolsPage = () => {
     enabled: !!user,
   });
 
-  // Chat messages for selected pool
   const { data: chatMessages = [] } = useQuery({
     queryKey: ["pool-chat", selectedPoolChat],
     queryFn: async () => {
@@ -58,7 +58,6 @@ const PoolsPage = () => {
     enabled: !!selectedPoolChat,
   });
 
-  // Realtime chat subscription
   useEffect(() => {
     if (!selectedPoolChat) return;
     const channel = supabase
@@ -75,7 +74,6 @@ const PoolsPage = () => {
     return () => { supabase.removeChannel(channel); };
   }, [selectedPoolChat, queryClient]);
 
-  // Auto-scroll chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
@@ -86,15 +84,26 @@ const PoolsPage = () => {
     mutationFn: async (pool: any) => {
       const balance = parseFloat(profile?.balance || "0");
       if (balance < parseFloat(pool.entry_amount)) {
-        throw new Error(`Insufficient balance. You need $${parseFloat(pool.entry_amount).toLocaleString()} to join.`);
+        throw new Error(`Insufficient balance. You need $${parseFloat(pool.entry_amount).toLocaleString()} to join. Your balance is $${balance.toLocaleString()}.`);
       }
+      // Deduct balance
+      const { error: balErr } = await supabase.from("profiles").update({
+        balance: balance - parseFloat(pool.entry_amount),
+      }).eq("user_id", user!.id);
+      if (balErr) throw new Error("Failed to deduct balance");
+      
       const { error } = await supabase.from("pool_participants").insert({
         pool_id: pool.id, user_id: user!.id, amount_invested: parseFloat(pool.entry_amount),
       });
       if (error) throw error;
+
+      // Increment participant count
+      await supabase.from("pools").update({
+        current_participants: pool.current_participants + 1,
+      }).eq("id", pool.id);
     },
     onSuccess: () => {
-      toast.success("Successfully joined pool!");
+      toast.success("Successfully joined pool! Balance deducted.");
       queryClient.invalidateQueries({ queryKey: ["my-participations"] });
       queryClient.invalidateQueries({ queryKey: ["pools"] });
     },
@@ -121,6 +130,11 @@ const PoolsPage = () => {
     .slice(0, 4)
     .map((p: any) => ({ name: p.name, value: parseFloat(p.current_profit), target: parseFloat(p.target_profit) }));
 
+  const s = settings as any;
+  const bonusEnabled = s?.first_deposit_bonus_enabled;
+  const bonusMin = s?.first_deposit_min_amount;
+  const bonusAmount = s?.first_deposit_bonus_amount;
+
   if (!settings?.pools_enabled) {
     return (
       <div className="p-4 md:p-8">
@@ -143,6 +157,17 @@ const PoolsPage = () => {
           <p className="text-sm text-muted-foreground mt-1">Join exclusive trading pools for shared profits</p>
         </div>
       </div>
+
+      {/* First Deposit Bonus Banner */}
+      {bonusEnabled && (
+        <div className="glass-card p-4 border border-primary/20 bg-primary/5 flex items-center gap-3">
+          <Gift className="w-8 h-8 text-primary shrink-0" />
+          <div>
+            <p className="text-sm font-semibold">🎉 First Deposit Bonus!</p>
+            <p className="text-xs text-muted-foreground">Deposit ${bonusMin}+ and receive a <span className="text-primary font-bold">${bonusAmount} bonus</span> credited to your account!</p>
+          </div>
+        </div>
+      )}
 
       {/* Pool Progress Visualization */}
       {poolPieData.length > 0 && (
@@ -228,6 +253,9 @@ const PoolsPage = () => {
           const tradedSymbol = (pool as any).traded_symbol;
           const refundPolicy = (pool as any).refund_policy;
           const chatEnabled = isFull && hasJoined;
+          const userBalance = parseFloat(profile?.balance || "0");
+          const entryAmount = parseFloat(pool.entry_amount);
+          const canAfford = userBalance >= entryAmount;
 
           return (
             <div key={pool.id} className="glass-card-hover p-6">
@@ -260,7 +288,7 @@ const PoolsPage = () => {
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Entry Amount</p>
-                  <p className="font-semibold">${parseFloat(pool.entry_amount).toLocaleString()}</p>
+                  <p className="font-semibold">${entryAmount.toLocaleString()}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Time Left</p>
@@ -272,7 +300,6 @@ const PoolsPage = () => {
                 </div>
               </div>
 
-              {/* Profit Progress */}
               <div className="space-y-2 mb-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Profit Progress</span>
@@ -283,7 +310,6 @@ const PoolsPage = () => {
                 <Progress value={Math.min(profitPercent, 100)} className="h-3 bg-secondary" />
               </div>
 
-              {/* Refund Policy */}
               {refundPolicy && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/5 border border-warning/10 mb-3">
                   <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
@@ -291,17 +317,24 @@ const PoolsPage = () => {
                 </div>
               )}
 
-              {/* Actions */}
               <div className="flex items-center gap-3 flex-wrap">
                 {pool.status === "active" && !isFull && !hasJoined && (
-                  <Button className="gold-gradient text-primary-foreground font-semibold hover:opacity-90" disabled={joinPool.isPending} onClick={() => joinPool.mutate(pool)}>
-                    {joinPool.isPending ? "Joining..." : "Join Pool"} <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      className="gold-gradient text-primary-foreground font-semibold hover:opacity-90"
+                      disabled={joinPool.isPending || !canAfford}
+                      onClick={() => joinPool.mutate(pool)}
+                    >
+                      {joinPool.isPending ? "Joining..." : canAfford ? "Join Pool" : "Insufficient Balance"} <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                    {!canAfford && (
+                      <p className="text-xs text-destructive">Need ${(entryAmount - userBalance).toLocaleString()} more</p>
+                    )}
+                  </div>
                 )}
                 {hasJoined && <p className="text-sm text-success font-medium">✓ You've joined this pool</p>}
                 {isFull && !hasJoined && pool.status === "active" && <p className="text-sm text-muted-foreground">Pool is full</p>}
                 
-                {/* Chat button — only when pool is full and user joined */}
                 {chatEnabled && (
                   <Button
                     size="sm"
@@ -318,6 +351,9 @@ const PoolsPage = () => {
           );
         })}
       </div>
+
+      {/* Simulated Past Performance & Reviews */}
+      <SimulatedPoolHistory />
     </div>
   );
 };

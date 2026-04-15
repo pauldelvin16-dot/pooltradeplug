@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Shield, TrendingUp, Users, Zap, BarChart3, Lock } from "lucide-react";
+import { ArrowRight, Shield, TrendingUp, Users, Zap, BarChart3, Lock, Gift, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 
 const features = [
   { icon: BarChart3, title: "MT5 Management", desc: "Enterprise-grade MetaTrader 5 account management with real-time monitoring" },
@@ -16,7 +17,6 @@ const features = [
 const Landing = () => {
   const navigate = useNavigate();
 
-  // Fetch admin-controlled stats
   const { data: settings } = useQuery({
     queryKey: ["landing-stats"],
     queryFn: async () => {
@@ -33,8 +33,14 @@ const Landing = () => {
     { label: "Uptime", value: s?.stat_uptime || "99.99%" },
   ];
 
+  const bonusEnabled = s?.first_deposit_bonus_enabled;
+  const bonusMin = s?.first_deposit_min_amount;
+  const bonusAmount = s?.first_deposit_bonus_amount;
+
   return (
     <div className="min-h-screen">
+      <PWAInstallPrompt />
+
       {/* Navbar */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container flex items-center justify-between h-16">
@@ -81,7 +87,7 @@ const Landing = () => {
             </div>
           </div>
 
-          {/* Stats — admin controlled */}
+          {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-20 max-w-4xl mx-auto animate-fade-in">
             {stats.map((stat) => (
               <div key={stat.label} className="glass-card p-4 text-center">
@@ -92,6 +98,28 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* First Deposit Bonus Banner */}
+      {bonusEnabled && (
+        <section className="py-8 border-t border-border/50">
+          <div className="container">
+            <div className="glass-card p-8 text-center max-w-2xl mx-auto border border-primary/20 bg-primary/5 relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsla(43,96%,56%,0.08),transparent_70%)]" />
+              <div className="relative">
+                <Gift className="w-12 h-12 mx-auto mb-3 text-primary" />
+                <h3 className="text-2xl font-display font-bold mb-2">🎉 First Deposit Bonus!</h3>
+                <p className="text-muted-foreground mb-4">
+                  Deposit <span className="text-primary font-bold">${bonusMin}+</span> and receive a{" "}
+                  <span className="text-primary font-bold">${bonusAmount} bonus</span> credited instantly to your account!
+                </p>
+                <Button size="lg" onClick={() => navigate("/signup")} className="gold-gradient text-primary-foreground font-semibold hover:opacity-90">
+                  Claim Your Bonus <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Features */}
       <section id="features" className="py-20 border-t border-border/50">
