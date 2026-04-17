@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import DepositsPage from "./pages/dashboard/DepositsPage";
 import WithdrawalsPage from "./pages/dashboard/WithdrawalsPage";
+import WalletPage from "./pages/dashboard/WalletPage";
 import MT5Page from "./pages/dashboard/MT5Page";
 import PoolsPage from "./pages/dashboard/PoolsPage";
 import ProfilePage from "./pages/dashboard/ProfilePage";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/signup" element={<Signup />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
               <Route index element={<DashboardHome />} />
+              <Route path="wallet" element={<WalletPage />} />
               <Route path="deposits" element={<DepositsPage />} />
               <Route path="withdrawals" element={<WithdrawalsPage />} />
               <Route path="mt5" element={<MT5Page />} />
