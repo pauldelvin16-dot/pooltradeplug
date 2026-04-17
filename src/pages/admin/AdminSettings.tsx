@@ -13,7 +13,7 @@ const AdminSettings = () => {
   const { data: adminSettings } = useQuery({
     queryKey: ["admin-settings-panel"],
     queryFn: async () => {
-      const { data } = await supabase.from("admin_settings").select("*").limit(1).single();
+      const { data } = await supabase.from("admin_settings").select("*").limit(1).maybeSingle();
       return data;
     },
   });
