@@ -18,7 +18,7 @@ const Login = () => {
   const { data: settings } = useQuery({
     queryKey: ["admin-settings-login"],
     queryFn: async () => {
-      const { data } = await supabase.from("admin_settings").select("telegram_bot_link").limit(1).single();
+      const { data } = await supabase.from("admin_settings").select("telegram_bot_link").limit(1).maybeSingle();
       return data;
     },
   });
