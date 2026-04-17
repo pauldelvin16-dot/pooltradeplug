@@ -60,11 +60,20 @@ const Login = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                {telegramLink && (
-                  <a href={telegramLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
-                    <Bot className="w-3 h-3" /> Forgot password?
-                  </a>
-                )}
+                <a
+                  href={telegramLink || "#"}
+                  target={telegramLink ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    if (!telegramLink) {
+                      e.preventDefault();
+                      toast.info("Forgot password reset is via Telegram bot — admin hasn't configured the bot link yet.");
+                    }
+                  }}
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  <Bot className="w-3 h-3" /> Forgot password?
+                </a>
               </div>
               <div className="relative">
                 <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-secondary/50 border-border focus:border-primary pr-10" required />
@@ -78,17 +87,21 @@ const Login = () => {
             </Button>
           </form>
 
-          {telegramLink && (
-            <div className="mt-4 p-3 rounded-lg bg-secondary/30 border border-border text-center">
-              <p className="text-xs text-muted-foreground">
-                Forgot your password? Send your email to our{" "}
-                <a href={telegramLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                  Telegram Bot
-                </a>{" "}
-                to get a temporary password.
-              </p>
-            </div>
-          )}
+          <div className="mt-4 p-3 rounded-lg bg-secondary/30 border border-border text-center">
+            <p className="text-xs text-muted-foreground">
+              Forgot your password? {telegramLink ? (
+                <>
+                  Open our{" "}
+                  <a href={telegramLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">
+                    Telegram Bot
+                  </a>{" "}
+                  and send <code className="text-primary">/resetpassword your@email.com</code> to get a temporary password.
+                </>
+              ) : (
+                <>The Telegram bot is being configured. Contact support for password help.</>
+              )}
+            </p>
+          </div>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
