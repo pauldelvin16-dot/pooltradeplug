@@ -1,6 +1,8 @@
-// TradeLux Telegram Bot — Long-polling worker
+// TradeLux Telegram Bot — Long-polling worker + Webhook handler
+// Supports both modes:
+//   - Cron-triggered POST {} → long-polling loop
+//   - Telegram webhook POST <update> → process single update
 // Calls Telegram Bot API DIRECTLY using the admin-configured bot token.
-// No connector required. Idempotent via offset stored in telegram_bot_state.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -43,45 +45,11 @@ Deno.serve(async (req) => {
 
   const TG_BASE = `https://api.telegram.org/bot${TG_TOKEN}`;
 
-  // Ensure bot state row
-  await supabase.from('telegram_bot_state').upsert({ id: 1, update_offset: 0 }, { onConflict: 'id' });
-  const { data: state } = await supabase
-    .from('telegram_bot_state')
-    .select('update_offset')
-    .eq('id', 1)
-    .maybeSingle();
-  let currentOffset: number = state?.update_offset ?? 0;
-
-  // Always make sure webhook is OFF (long-polling can't coexist with webhook)
-  try {
-    await fetch(`${TG_BASE}/deleteWebhook?drop_pending_updates=false`, { method: 'POST' });
-  } catch (_) { /* ignore */ }
-
-  // Set bot commands menu (so the / button shows nice list)
-  try {
-    await fetch(`${TG_BASE}/setMyCommands`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        commands: [
-          { command: 'start', description: '🚀 Start & link account' },
-          { command: 'menu', description: '📋 Show menu' },
-          { command: 'balance', description: '💰 Check balance' },
-          { command: 'deposit', description: '📥 Get deposit address' },
-          { command: 'pools', description: '🏊 Active trading pools' },
-          { command: 'resetpassword', description: '🔑 Reset password' },
-          { command: 'link', description: '🔗 Link account: /link email' },
-          { command: 'help', description: '❓ Help' },
-        ],
-      }),
-    });
-  } catch (_) { /* ignore */ }
-
   const persistentKeyboard = {
     keyboard: [
       [{ text: '💰 Balance' }, { text: '📥 Deposit' }],
-      [{ text: '🏊 Pools' }, { text: '🔑 Reset Password' }],
-      [{ text: '📋 Menu' }, { text: '❓ Help' }],
+      [{ text: '🏊 Pools' }, { text: '🤝 Join Pool' }],
+      [{ text: '🔑 Reset Password' }, { text: '❓ Help' }],
     ],
     resize_keyboard: true,
     is_persistent: true,
@@ -92,7 +60,7 @@ Deno.serve(async (req) => {
       chat_id: chatId,
       text,
       parse_mode: 'HTML',
-      reply_markup: persistentKeyboard, // ALWAYS attach persistent menu
+      reply_markup: persistentKeyboard,
       ...(extra || {}),
     };
     try {
@@ -102,30 +70,35 @@ Deno.serve(async (req) => {
         body: JSON.stringify(body),
       });
       if (!r.ok) console.error('sendMessage failed', r.status, await r.text());
-    } catch (e) {
-      console.error('sendMessage error', e);
-    }
+    } catch (e) { console.error('sendMessage error', e); }
   };
 
-  const handleCommand = async (chatId: number, rawText: string, firstName?: string) => {
+  const answerCallback = async (id: string, text?: string) => {
+    try {
+      await fetch(`${TG_BASE}/answerCallbackQuery`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callback_query_id: id, text }),
+      });
+    } catch (_) {}
+  };
+
+  const handleCommand = async (chatId: number, rawText: string) => {
     const text = rawText.trim();
     const lower = text.toLowerCase();
-    const cmd = lower.split(' ')[0].split('@')[0]; // strip @botname
-    const args = text.split(' ').slice(1);
+    const cmd = lower.split(' ')[0].split('@')[0];
+    const args = text.split(/\s+/).slice(1);
 
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('telegram_chat_id', String(chatId))
-      .maybeSingle();
+      .from('profiles').select('*')
+      .eq('telegram_chat_id', String(chatId)).maybeSingle();
 
     const isLinked = !!profile;
 
-    // Map button labels to commands
     const buttonMap: Record<string, string> = {
       '💰 balance': '/balance',
       '📥 deposit': '/deposit',
       '🏊 pools': '/pools',
+      '🤝 join pool': '/join',
       '🔑 reset password': '/resetpassword',
       '📋 menu': '/menu',
       '❓ help': '/help',
@@ -134,8 +107,8 @@ Deno.serve(async (req) => {
 
     if (effective === '/start' || effective === '/menu') {
       const greet = isLinked
-        ? `🏆 <b>Welcome back, ${profile.first_name || 'Trader'}!</b>\n\nYour TradeLux account is linked. Use the menu below 👇`
-        : `🏆 <b>Welcome to TradeLux!</b>\n\nYour elite trading companion.\n\n📌 <b>Link your account:</b>\n<code>/link your@email.com</code>\n\nThen explore using the menu below 👇`;
+        ? `🏆 <b>Welcome back, ${profile.first_name || 'Trader'}!</b>\n\nYour TradeLux account is linked.\n\n💼 Use the menu below to manage your account 👇`
+        : `🏆 <b>Welcome to TradeLux!</b>\n\nYour elite trading companion.\n\n📌 <b>Step 1:</b> Link your account by sending:\n<code>/link your@email.com</code>\n\nThen explore using the menu below 👇`;
       await send(chatId, greet);
       return;
     }
@@ -146,11 +119,12 @@ Deno.serve(async (req) => {
         `🔗 <code>/link &lt;email&gt;</code> — Link your account\n` +
         `💰 /balance — Check your balance\n` +
         `📥 /deposit — Get deposit addresses\n` +
+        `📤 <code>/submit &lt;amount&gt; &lt;txid&gt;</code> — Submit a deposit\n` +
         `🏊 /pools — View active trading pools\n` +
-        `🔑 /resetpassword — Get a temporary password\n` +
-        `📋 /menu — Show main menu\n` +
-        `❓ /help — Show this help\n\n` +
-        `💡 You can also tap the buttons below — the menu never disappears!`
+        `🤝 /join — Join an active pool\n` +
+        `🔑 /resetpassword — Get a temp password\n` +
+        `❓ /help — This menu\n\n` +
+        `💡 Use the buttons below — the menu is always there!`
       );
       return;
     }
@@ -158,7 +132,7 @@ Deno.serve(async (req) => {
     if (effective === '/link') {
       const email = (args[0] || '').toLowerCase().trim();
       if (!email || !email.includes('@')) {
-        await send(chatId, '❌ Please send your email like this:\n<code>/link you@example.com</code>');
+        await send(chatId, '❌ Please send your email like:\n<code>/link you@example.com</code>');
         return;
       }
       const { data: target } = await supabase
@@ -167,31 +141,26 @@ Deno.serve(async (req) => {
         await send(chatId, `❌ No TradeLux account found for <code>${email}</code>.\n\nSign up first, then come back to /link.`);
         return;
       }
-      const { error: linkErr } = await supabase.from('profiles')
+      await supabase.from('profiles')
         .update({ telegram_chat_id: String(chatId), telegram_linked: true })
         .eq('user_id', target.user_id);
-      if (linkErr) {
-        await send(chatId, '❌ Failed to link your account. Try again shortly.');
-        return;
-      }
       await send(chatId,
-        `✅ <b>Account linked successfully!</b>\n\n` +
-        `Welcome aboard, <b>${target.first_name || 'Trader'}</b> 🎉\n` +
-        `You can now check your balance, deposit, or join pools right here.`
+        `✅ <b>Account linked!</b>\n\nWelcome, <b>${target.first_name || 'Trader'}</b> 🎉\n\nYou can now manage your balance, deposit, and join pools right from Telegram.`
       );
       return;
     }
 
-    // Below: features that may or may not require linking, handle gracefully
     if (effective === '/balance') {
       if (!profile) {
         await send(chatId, '🔒 Link your account first:\n<code>/link your@email.com</code>');
         return;
       }
+      // Re-fetch fresh balance
+      const { data: fresh } = await supabase.from('profiles').select('balance, first_name, last_name, email').eq('user_id', profile.user_id).maybeSingle();
       await send(chatId,
         `💰 <b>Your Balance</b>\n\n` +
-        `<b>$${Number(profile.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}</b>\n\n` +
-        `👤 ${profile.first_name || ''} ${profile.last_name || ''}\n📧 ${profile.email}`
+        `<b>$${Number(fresh?.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</b>\n\n` +
+        `👤 ${fresh?.first_name || ''} ${fresh?.last_name || ''}\n📧 ${fresh?.email}`
       );
       return;
     }
@@ -203,7 +172,6 @@ Deno.serve(async (req) => {
         await send(chatId, '⚠️ No deposit addresses available right now. Please contact support.');
         return;
       }
-      // Send as inline keyboard so user can tap a network and receive that specific address
       const inline = {
         inline_keyboard: addresses.map((a: any) => [{
           text: `${a.currency} • ${a.network}${a.label ? ` (${a.label})` : ''}`,
@@ -212,9 +180,46 @@ Deno.serve(async (req) => {
       };
       await send(chatId,
         `📥 <b>Choose a deposit network</b>\n\n` +
-        `Tap a network below — I'll send you the exact address to copy.`,
+        `Tap below to get the exact address. After sending crypto, submit your deposit with:\n` +
+        `<code>/submit &lt;amount&gt; &lt;txid&gt;</code>`,
         { reply_markup: inline }
       );
+      return;
+    }
+
+    if (effective === '/submit') {
+      if (!profile) { await send(chatId, '🔒 Link your account first: <code>/link your@email.com</code>'); return; }
+      const amount = parseFloat(args[0]);
+      const txid = args[1];
+      if (!amount || amount <= 0 || !txid) {
+        await send(chatId, '❌ Usage: <code>/submit &lt;amount&gt; &lt;txid&gt;</code>\nExample: <code>/submit 100 abc123def456</code>');
+        return;
+      }
+      const { data: addr } = await supabase.from('crypto_addresses').select('id, currency, network').eq('is_active', true).limit(1).maybeSingle();
+      const { error } = await supabase.from('deposits').insert({
+        user_id: profile.user_id,
+        amount,
+        txid,
+        currency: addr?.currency || 'USDT',
+        network: addr?.network || 'TRC20',
+        crypto_address_id: addr?.id || null,
+        status: 'pending',
+      });
+      if (error) {
+        await send(chatId, `❌ Could not submit deposit: ${error.message}`);
+        return;
+      }
+      await send(chatId,
+        `✅ <b>Deposit submitted!</b>\n\n` +
+        `💵 Amount: $${amount}\n🔗 TxID: <code>${txid}</code>\n\n` +
+        `Status: <b>Pending</b>\nAdmin will confirm shortly. You'll see it in your wallet history.`
+      );
+      // Notify admin
+      if (settings?.telegram_admin_chat_id) {
+        await send(settings.telegram_admin_chat_id,
+          `🔔 <b>New Deposit</b>\n\nUser: ${profile.email}\nAmount: $${amount}\nTxID: <code>${txid}</code>`
+        );
+      }
       return;
     }
 
@@ -233,15 +238,43 @@ Deno.serve(async (req) => {
         msg += `💵 Entry: $${Number(p.entry_amount).toLocaleString()}\n`;
         msg += `👥 ${p.current_participants}/${p.max_participants} traders\n`;
         msg += `📈 Profit: $${Number(p.current_profit).toLocaleString()} / $${Number(p.target_profit).toLocaleString()}\n`;
-        msg += `💰 ${split}% profit split to you\n\n`;
+        msg += `💰 ${split}% profit to you\n\n`;
       }
-      msg += '💡 Open TradeLux web app to join a pool.';
+      msg += '💡 Tap <b>🤝 Join Pool</b> to join one.';
       await send(chatId, msg);
       return;
     }
 
+    if (effective === '/join') {
+      if (!profile) { await send(chatId, '🔒 Link your account first: <code>/link your@email.com</code>'); return; }
+      const { data: pools } = await supabase
+        .from('pools').select('*').eq('status', 'active').order('created_at', { ascending: false }).limit(8);
+      if (!pools || pools.length === 0) {
+        await send(chatId, '🏊 No active pools to join right now.');
+        return;
+      }
+      const inline = {
+        inline_keyboard: pools
+          .filter((p: any) => p.current_participants < p.max_participants)
+          .map((p: any) => [{
+            text: `${p.name} • $${Number(p.entry_amount).toLocaleString()} • ${p.current_participants}/${p.max_participants}`,
+            callback_data: `join:${p.id}`,
+          }]),
+      };
+      if (inline.inline_keyboard.length === 0) {
+        await send(chatId, '🏊 All active pools are currently full.');
+        return;
+      }
+      await send(chatId,
+        `🤝 <b>Choose a pool to join</b>\n\n` +
+        `Your balance: <b>$${Number(profile.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}</b>\n\n` +
+        `Entry amount will be deducted from your balance.`,
+        { reply_markup: inline }
+      );
+      return;
+    }
+
     if (effective === '/resetpassword') {
-      // Allow reset by chat link OR by email argument
       let target = profile;
       if (!target && args[0]?.includes('@')) {
         const { data: byEmail } = await supabase
@@ -250,7 +283,7 @@ Deno.serve(async (req) => {
       }
       if (!target) {
         await send(chatId,
-          `🔒 To reset your password, link your account first:\n<code>/link your@email.com</code>\n\n` +
+          `🔒 To reset your password, link first:\n<code>/link your@email.com</code>\n\n` +
           `Or send: <code>/resetpassword your@email.com</code>`
         );
         return;
@@ -258,25 +291,15 @@ Deno.serve(async (req) => {
       const tempPassword = generateTempPassword();
       const { data: userData } = await supabase.auth.admin.listUsers();
       const authUser = userData?.users?.find((u: any) => u.email === target.email);
-      if (!authUser) {
-        await send(chatId, '❌ Could not find your auth account. Contact support.');
-        return;
-      }
+      if (!authUser) { await send(chatId, '❌ Could not find your auth account.'); return; }
       const { error: resetErr } = await supabase.auth.admin.updateUserById(authUser.id, { password: tempPassword });
-      if (resetErr) {
-        await send(chatId, '❌ Failed to reset password. Try again shortly.');
-        return;
-      }
+      if (resetErr) { await send(chatId, '❌ Failed to reset password.'); return; }
       await send(chatId,
-        `🔑 <b>Temporary Password Issued</b>\n\n` +
-        `Email: <code>${target.email}</code>\n` +
-        `Password: <code>${tempPassword}</code>\n\n` +
-        `⚠️ Log in and change this password immediately under Profile → Security.`
+        `🔑 <b>Temporary Password</b>\n\nEmail: <code>${target.email}</code>\nPassword: <code>${tempPassword}</code>\n\n⚠️ Log in and change this immediately under Profile → Security.`
       );
       return;
     }
 
-    // Fallback
     await send(chatId, '🤔 I didn\'t recognise that. Tap a button below or send /help.');
   };
 
@@ -284,27 +307,123 @@ Deno.serve(async (req) => {
     if (data.startsWith('addr:')) {
       const id = data.slice(5);
       const { data: addr } = await supabase.from('crypto_addresses').select('*').eq('id', id).maybeSingle();
-      if (!addr) {
-        await fetch(`${TG_BASE}/answerCallbackQuery`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ callback_query_id: callbackId, text: 'Address not available' }),
-        });
-        return;
-      }
-      await fetch(`${TG_BASE}/answerCallbackQuery`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ callback_query_id: callbackId, text: 'Address sent!' }),
-      });
+      if (!addr) { await answerCallback(callbackId, 'Address not available'); return; }
+      await answerCallback(callbackId, 'Address sent!');
       await send(chatId,
         `📥 <b>${addr.currency} • ${addr.network}</b>${addr.label ? ` — ${addr.label}` : ''}\n\n` +
         `<code>${addr.address}</code>\n\n` +
-        `⚠️ Send only ${addr.currency} on the ${addr.network} network. Other tokens will be lost.\n` +
-        `Deposits are credited after admin confirmation.`
+        `⚠️ Send only ${addr.currency} on the ${addr.network} network. Other tokens will be lost.\n\n` +
+        `📤 After sending, submit with:\n<code>/submit &lt;amount&gt; &lt;txid&gt;</code>`
       );
+      return;
     }
+
+    if (data.startsWith('join:')) {
+      const poolId = data.slice(5);
+      const { data: profile } = await supabase
+        .from('profiles').select('*').eq('telegram_chat_id', String(chatId)).maybeSingle();
+      if (!profile) { await answerCallback(callbackId, 'Link account first'); return; }
+      const { data: pool } = await supabase.from('pools').select('*').eq('id', poolId).maybeSingle();
+      if (!pool) { await answerCallback(callbackId, 'Pool not found'); return; }
+      if (pool.current_participants >= pool.max_participants) { await answerCallback(callbackId, 'Pool is full'); return; }
+
+      // Already joined?
+      const { data: existing } = await supabase
+        .from('pool_participants').select('id').eq('pool_id', poolId).eq('user_id', profile.user_id).maybeSingle();
+      if (existing) { await answerCallback(callbackId, 'Already joined'); await send(chatId, `ℹ️ You're already in <b>${pool.name}</b>.`); return; }
+
+      const balance = Number(profile.balance);
+      const entry = Number(pool.entry_amount);
+      if (balance < entry) {
+        await answerCallback(callbackId, 'Insufficient balance');
+        await send(chatId, `❌ Insufficient balance.\nNeeded: $${entry}\nYou have: $${balance.toFixed(2)}\n\nDeposit first via 📥 Deposit.`);
+        return;
+      }
+
+      // Deduct + insert + bump participant count
+      const { error: balErr } = await supabase.from('profiles').update({ balance: balance - entry }).eq('user_id', profile.user_id);
+      if (balErr) { await answerCallback(callbackId, 'Failed'); return; }
+
+      const { error: joinErr } = await supabase.from('pool_participants').insert({
+        pool_id: poolId, user_id: profile.user_id, amount_invested: entry,
+      });
+      if (joinErr) {
+        // Refund on failure
+        await supabase.from('profiles').update({ balance }).eq('user_id', profile.user_id);
+        await answerCallback(callbackId, 'Failed to join');
+        return;
+      }
+      await supabase.from('pools').update({ current_participants: pool.current_participants + 1 }).eq('id', poolId);
+
+      await answerCallback(callbackId, '✅ Joined!');
+      await send(chatId,
+        `🎉 <b>Successfully joined ${pool.name}!</b>\n\n` +
+        `💵 Invested: $${entry}\n💰 New balance: $${(balance - entry).toFixed(2)}\n` +
+        `📊 Symbol: <code>${pool.traded_symbol || 'TBA'}</code>\n` +
+        `💎 Profit split: ${pool.profit_split_percentage || 70}% to you\n\n` +
+        `When the pool fills up, you'll get access to the live chat room in the app.`
+      );
+      return;
+    }
+
+    await answerCallback(callbackId);
   };
+
+  // ───── Setup commands menu (best-effort) ─────
+  try {
+    await fetch(`${TG_BASE}/setMyCommands`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        commands: [
+          { command: 'start', description: '🚀 Start' },
+          { command: 'menu', description: '📋 Menu' },
+          { command: 'balance', description: '💰 Balance' },
+          { command: 'deposit', description: '📥 Deposit' },
+          { command: 'submit', description: '📤 Submit deposit' },
+          { command: 'pools', description: '🏊 View pools' },
+          { command: 'join', description: '🤝 Join a pool' },
+          { command: 'resetpassword', description: '🔑 Reset password' },
+          { command: 'link', description: '🔗 Link account' },
+          { command: 'help', description: '❓ Help' },
+        ],
+      }),
+    });
+  } catch (_) {}
+
+  // ───── Detect mode: webhook update OR polling trigger ─────
+  let bodyJson: any = null;
+  try {
+    const text = await req.text();
+    bodyJson = text ? JSON.parse(text) : null;
+  } catch (_) {}
+
+  const isWebhookUpdate = bodyJson && (bodyJson.update_id || bodyJson.message || bodyJson.callback_query);
+
+  if (isWebhookUpdate) {
+    // Webhook mode — process single update
+    try {
+      if (bodyJson.message?.text) {
+        await handleCommand(bodyJson.message.chat.id, bodyJson.message.text);
+      } else if (bodyJson.callback_query) {
+        await handleCallback(
+          bodyJson.callback_query.message.chat.id,
+          bodyJson.callback_query.data,
+          bodyJson.callback_query.id
+        );
+      }
+    } catch (e) { console.error('Webhook handler error', e); }
+    return new Response(JSON.stringify({ ok: true, mode: 'webhook' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // ───── Long-polling mode ─────
+  // Ensure webhook OFF for polling
+  try { await fetch(`${TG_BASE}/deleteWebhook?drop_pending_updates=false`, { method: 'POST' }); } catch (_) {}
+
+  await supabase.from('telegram_bot_state').upsert({ id: 1, update_offset: 0 }, { onConflict: 'id' });
+  const { data: state } = await supabase.from('telegram_bot_state').select('update_offset').eq('id', 1).maybeSingle();
+  let currentOffset: number = state?.update_offset ?? 0;
 
   let totalProcessed = 0;
 
@@ -319,24 +438,12 @@ Deno.serve(async (req) => {
     let resp: Response;
     try {
       resp = await fetch(`${TG_BASE}/getUpdates`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          offset: currentOffset,
-          timeout,
-          allowed_updates: ['message', 'callback_query'],
-        }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ offset: currentOffset, timeout, allowed_updates: ['message', 'callback_query'] }),
       });
-    } catch (e) {
-      console.error('getUpdates network error', e);
-      break;
-    }
+    } catch (e) { console.error('getUpdates network error', e); break; }
 
-    if (!resp.ok) {
-      const errText = await resp.text();
-      console.error('getUpdates failed', resp.status, errText);
-      break;
-    }
+    if (!resp.ok) { console.error('getUpdates failed', resp.status, await resp.text()); break; }
 
     const data = await resp.json();
     const updates = data.result ?? [];
@@ -345,41 +452,23 @@ Deno.serve(async (req) => {
     for (const update of updates) {
       try {
         if (update.message?.text) {
-          await handleCommand(
-            update.message.chat.id,
-            update.message.text,
-            update.message.from?.first_name
-          );
+          await handleCommand(update.message.chat.id, update.message.text);
         } else if (update.callback_query) {
-          await handleCallback(
-            update.callback_query.message.chat.id,
-            update.callback_query.data,
-            update.callback_query.id
-          );
+          await handleCallback(update.callback_query.message.chat.id, update.callback_query.data, update.callback_query.id);
         }
-      } catch (e) {
-        console.error('Update handler error', e);
-      }
+      } catch (e) { console.error('Update handler error', e); }
     }
 
-    // Persist messages (best-effort)
     const rows = updates
       .filter((u: any) => u.message)
-      .map((u: any) => ({
-        update_id: u.update_id,
-        chat_id: u.message.chat.id,
-        text: u.message.text ?? null,
-        raw_update: u,
-      }));
+      .map((u: any) => ({ update_id: u.update_id, chat_id: u.message.chat.id, text: u.message.text ?? null, raw_update: u }));
     if (rows.length > 0) {
       await supabase.from('telegram_messages').upsert(rows, { onConflict: 'update_id' });
       totalProcessed += rows.length;
     }
 
     const newOffset = Math.max(...updates.map((u: any) => u.update_id)) + 1;
-    await supabase.from('telegram_bot_state')
-      .update({ update_offset: newOffset, updated_at: new Date().toISOString() })
-      .eq('id', 1);
+    await supabase.from('telegram_bot_state').update({ update_offset: newOffset, updated_at: new Date().toISOString() }).eq('id', 1);
     currentOffset = newOffset;
   }
 
