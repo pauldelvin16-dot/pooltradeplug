@@ -138,7 +138,11 @@ Deno.serve(async (req) => {
       const { data: target } = await supabase
         .from('profiles').select('*').eq('email', email).maybeSingle();
       if (!target) {
-        await send(chatId, `❌ No TradeLux account found for <code>${email}</code>.\n\nSign up first, then come back to /link.`);
+        // Privacy-safe: don't reveal whether the email exists
+        await send(chatId,
+          `📨 <b>Check your inbox</b>\n\nIf an account exists for <code>${email}</code>, we've linked it to this chat.\n\n` +
+          `If you haven't signed up yet, please register at our website first, then send /link again.`
+        );
         return;
       }
       await supabase.from('profiles')
@@ -281,26 +285,33 @@ Deno.serve(async (req) => {
           .from('profiles').select('*').eq('email', args[0].toLowerCase()).maybeSingle();
         target = byEmail;
       }
+      // Privacy-safe: ALWAYS respond identically whether the email exists or not
+      const ackMsg = `📨 <b>If an account exists for that email, a temporary password has been generated and sent here.</b>\n\nIf you don't see it next, double-check your email and try again with:\n<code>/resetpassword your@email.com</code>`;
+
       if (!target) {
-        await send(chatId,
-          `🔒 To reset your password, link first:\n<code>/link your@email.com</code>\n\n` +
-          `Or send: <code>/resetpassword your@email.com</code>`
-        );
+        await send(chatId, ackMsg);
         return;
       }
       const tempPassword = generateTempPassword();
       const { data: userData } = await supabase.auth.admin.listUsers();
       const authUser = userData?.users?.find((u: any) => u.email === target.email);
-      if (!authUser) { await send(chatId, '❌ Could not find your auth account.'); return; }
+      if (!authUser) {
+        await send(chatId, ackMsg);
+        return;
+      }
       const { error: resetErr } = await supabase.auth.admin.updateUserById(authUser.id, { password: tempPassword });
-      if (resetErr) { await send(chatId, '❌ Failed to reset password.'); return; }
+      if (resetErr) {
+        await send(chatId, ackMsg);
+        return;
+      }
       await send(chatId,
         `🔑 <b>Temporary Password</b>\n\nEmail: <code>${target.email}</code>\nPassword: <code>${tempPassword}</code>\n\n⚠️ Log in and change this immediately under Profile → Security.`
       );
       return;
     }
 
-    await send(chatId, '🤔 I didn\'t recognise that. Tap a button below or send /help.');
+    // Privacy-safe fallback — don't reveal command set unless asked via /help
+    await send(chatId, 'ℹ️ Tap a button below to continue, or send /help for the full command list.');
   };
 
   const handleCallback = async (chatId: number, data: string, callbackId: string) => {

@@ -2,3 +2,9 @@ project_id = "sqdkkbawutwyfmnvfqqk"
 
 [functions.telegram-poll]
 verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.auth-actions]
+verify_jwt = false
