@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 
 const features = [
   { icon: BarChart3, title: "MT5 Management", desc: "Enterprise-grade MetaTrader 5 account management with real-time monitoring" },
@@ -16,6 +18,7 @@ const features = [
 
 const Landing = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const { data: settings } = useQuery({
     queryKey: ["landing-stats"],
@@ -50,12 +53,13 @@ const Landing = () => {
             <a href="#pools" className="hover:text-foreground transition-colors">Pools</a>
             <button onClick={() => navigate("/terms")} className="hover:text-foreground transition-colors">Terms</button>
           </nav>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="text-muted-foreground hover:text-foreground">
-              Sign In
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher compact />
+            <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="text-muted-foreground hover:text-foreground hidden sm:inline-flex">
+              {t("nav.signin")}
             </Button>
             <Button size="sm" onClick={() => navigate("/signup")} className="gold-gradient text-primary-foreground font-semibold hover:opacity-90">
-              Get Started
+              {t("nav.getStarted")}
             </Button>
           </div>
         </div>
