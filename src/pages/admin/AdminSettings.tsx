@@ -50,6 +50,15 @@ const AdminSettings = () => {
       setBonusEnabled(s.first_deposit_bonus_enabled || false);
       setBonusMin(String(s.first_deposit_min_amount || 100));
       setBonusAmount(String(s.first_deposit_bonus_amount || 10));
+      setSmtpHost(s.smtp_host || "");
+      setSmtpPort(String(s.smtp_port || 587));
+      setSmtpSecure(s.smtp_secure || false);
+      setSmtpUser(s.smtp_username || "");
+      setSmtpPass(s.smtp_password || "");
+      setSmtpFromEmail(s.smtp_from_email || "");
+      setSmtpFromName(s.smtp_from_name || "TradeLux");
+      setSmtpEnabled(s.smtp_enabled || false);
+      setOtpEnabled(s.otp_login_enabled || false);
     }
   }, [adminSettings]);
 
@@ -137,6 +146,38 @@ const AdminSettings = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
     },
   });
+
+  const updateSmtp = useMutation({
+    mutationFn: async () => {
+      if (!adminSettings?.id) return;
+      const { error } = await supabase.from("admin_settings").update({
+        smtp_host: smtpHost || null,
+        smtp_port: parseInt(smtpPort) || 587,
+        smtp_secure: smtpSecure,
+        smtp_username: smtpUser || null,
+        smtp_password: smtpPass || null,
+        smtp_from_email: smtpFromEmail || null,
+        smtp_from_name: smtpFromName || "TradeLux",
+        smtp_enabled: smtpEnabled,
+        otp_login_enabled: otpEnabled,
+      } as any).eq("id", adminSettings.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("SMTP & OTP config saved!");
+      queryClient.invalidateQueries({ queryKey: ["admin-settings-panel"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const sendTest = async () => {
+    if (!testEmail) { toast.error("Enter a test email"); return; }
+    const { data, error } = await supabase.functions.invoke("send-email", {
+      body: { to: testEmail, template: "generic", data: { subject: "TradeLux SMTP Test", message: "If you can read this, your SMTP handshake is working perfectly. ✨" }, origin: window.location.origin },
+    });
+    if (error || !(data as any)?.ok) toast.error(`Test failed: ${(data as any)?.error || error?.message || "Check SMTP config"}`);
+    else toast.success("Test email sent!");
+  };
 
   const [newAddress, setNewAddress] = useState("");
   const [newNetwork, setNewNetwork] = useState("TRC20");
