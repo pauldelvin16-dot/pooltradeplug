@@ -27,14 +27,17 @@ const Signup = () => {
       password,
       options: {
         data: { first_name: firstName, last_name: lastName },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/dashboard`,
       },
     });
     setLoading(false);
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Account created! Check your email to verify.");
+      supabase.functions.invoke("send-email", {
+        body: { to: email, template: "welcome", data: { name: firstName }, origin: window.location.origin },
+      }).catch(() => {});
+      toast.success("Account created! Check your email.");
       navigate("/dashboard");
     }
   };

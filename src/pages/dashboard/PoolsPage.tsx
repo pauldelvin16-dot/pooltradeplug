@@ -102,8 +102,18 @@ const PoolsPage = () => {
         current_participants: pool.current_participants + 1,
       }).eq("id", pool.id);
     },
-    onSuccess: () => {
+    onSuccess: (_data, pool: any) => {
       toast.success("Successfully joined pool! Balance deducted.");
+      if (profile?.email) {
+        supabase.functions.invoke("send-email", {
+          body: {
+            to: profile.email,
+            template: "pool_joined",
+            data: { name: profile.first_name, pool_name: pool.name, amount: parseFloat(pool.entry_amount).toFixed(2), symbol: pool.traded_symbol },
+            origin: window.location.origin,
+          },
+        }).catch(() => {});
+      }
       queryClient.invalidateQueries({ queryKey: ["my-participations"] });
       queryClient.invalidateQueries({ queryKey: ["pools"] });
     },
