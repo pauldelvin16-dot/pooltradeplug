@@ -1,0 +1,72 @@
+{
+  "nav": {
+    "home": "Home",
+    "wallet": "Wallet",
+    "mt5": "MT5",
+    "pools": "Pools",
+    "chat": "Chat",
+    "profile": "Profile",
+    "signin": "Sign In",
+    "getStarted": "Get Started",
+    "features": "Features",
+    "terms": "Terms"
+  },
+  "hero": {
+    "badge": "Live Trading Platform",
+    "title1": "Trade Smarter with",
+    "title2": "Elite Access",
+    "subtitle": "The world-class trading management platform. MT5 accounts, pool trading, USDT deposits — all in one secure, luxurious experience.",
+    "startTrading": "Start Trading",
+    "signIn": "Sign In"
+  },
+  "stats": {
+    "activeTraders": "Active Traders",
+    "totalVolume": "Total Volume",
+    "tradingPools": "Trading Pools",
+    "uptime": "Uptime"
+  },
+  "wallet": {
+    "title": "Wallet",
+    "subtitle": "Your balance, deposits, and withdrawals in one place",
+    "available": "Available Balance",
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
+    "deposits": "Deposits",
+    "withdrawals": "Withdrawals",
+    "noHistory": "No {{type}} yet"
+  },
+  "pools": {
+    "title": "Pool Trading",
+    "subtitle": "Join exclusive trading pools for shared profits",
+    "joinPool": "Join Pool",
+    "joining": "Joining...",
+    "insufficientBalance": "Insufficient Balance",
+    "joined": "✓ You've joined this pool",
+    "full": "Pool is full",
+    "poolChat": "Pool Chat",
+    "closeChat": "Close Chat",
+    "target": "Target",
+    "participants": "Participants",
+    "entryAmount": "Entry Amount",
+    "timeLeft": "Time Left",
+    "profitSplit": "Profit Split",
+    "profitProgress": "Profit Progress",
+    "needMore": "Need ${{amount}} more"
+  },
+  "chat": {
+    "title": "Pool Chat Room",
+    "subtitle": "Join a full pool to start chatting",
+    "noActive": "No active pool chat",
+    "noActiveDesc": "Join a trading pool — when it fills up, you'll get instant access to the live chat with fellow traders.",
+    "noMessages": "No messages yet — say hi 👋",
+    "placeholder": "Type a message…",
+    "tradersOnline": "{{current}}/{{max}} traders online"
+  },
+  "common": {
+    "language": "Language",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close"
+  }
+}

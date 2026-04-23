@@ -1,0 +1,9 @@
+{
+  "nav": { "home": "الرئيسية", "wallet": "المحفظة", "mt5": "MT5", "pools": "المجمعات", "chat": "الدردشة", "profile": "الملف", "signin": "دخول", "getStarted": "ابدأ", "features": "الميزات", "terms": "الشروط" },
+  "hero": { "badge": "منصة تداول مباشرة", "title1": "تداول بذكاء مع", "title2": "وصول النخبة", "subtitle": "منصة إدارة التداول العالمية. حسابات MT5، تداول المجمعات، إيداعات USDT — كل ذلك في تجربة آمنة وفاخرة.", "startTrading": "ابدأ التداول", "signIn": "دخول" },
+  "stats": { "activeTraders": "المتداولون النشطون", "totalVolume": "الحجم الإجمالي", "tradingPools": "مجمعات التداول", "uptime": "وقت التشغيل" },
+  "wallet": { "title": "المحفظة", "subtitle": "رصيدك وإيداعاتك وسحوباتك في مكان واحد", "available": "الرصيد المتاح", "deposit": "إيداع", "withdraw": "سحب", "deposits": "الإيداعات", "withdrawals": "السحوبات", "noHistory": "لا توجد {{type}} حتى الآن" },
+  "pools": { "title": "تداول المجمعات", "subtitle": "انضم إلى مجمعات حصرية للأرباح المشتركة", "joinPool": "انضم", "joining": "جاري الانضمام...", "insufficientBalance": "رصيد غير كافٍ", "joined": "✓ لقد انضممت إلى هذا المجمع", "full": "المجمع ممتلئ", "poolChat": "دردشة المجمع", "closeChat": "إغلاق", "target": "الهدف", "participants": "المشاركون", "entryAmount": "مبلغ الدخول", "timeLeft": "الوقت المتبقي", "profitSplit": "تقسيم الربح", "profitProgress": "التقدم", "needMore": "تحتاج ${{amount}} إضافية" },
+  "chat": { "title": "غرفة دردشة المجمع", "subtitle": "انضم إلى مجمع ممتلئ لبدء الدردشة", "noActive": "لا توجد دردشة نشطة", "noActiveDesc": "انضم إلى مجمع — عندما يمتلئ ستحصل على وصول فوري للدردشة المباشرة.", "noMessages": "لا توجد رسائل — قل مرحبًا 👋", "placeholder": "اكتب رسالة…", "tradersOnline": "{{current}}/{{max}} متداول متصل" },
+  "common": { "language": "اللغة", "loading": "تحميل...", "save": "حفظ", "cancel": "إلغاء", "close": "إغلاق" }
+}
