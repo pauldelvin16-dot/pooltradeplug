@@ -23,8 +23,17 @@ export type Database = {
           first_deposit_min_amount: number
           id: string
           mt5_enabled: boolean
+          otp_login_enabled: boolean | null
           pools_enabled: boolean
           registrations_enabled: boolean
+          smtp_enabled: boolean | null
+          smtp_from_email: string | null
+          smtp_from_name: string | null
+          smtp_host: string | null
+          smtp_password: string | null
+          smtp_port: number | null
+          smtp_secure: boolean | null
+          smtp_username: string | null
           stat_active_traders: string | null
           stat_total_volume: string | null
           stat_trading_pools: string | null
@@ -43,8 +52,17 @@ export type Database = {
           first_deposit_min_amount?: number
           id?: string
           mt5_enabled?: boolean
+          otp_login_enabled?: boolean | null
           pools_enabled?: boolean
           registrations_enabled?: boolean
+          smtp_enabled?: boolean | null
+          smtp_from_email?: string | null
+          smtp_from_name?: string | null
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_secure?: boolean | null
+          smtp_username?: string | null
           stat_active_traders?: string | null
           stat_total_volume?: string | null
           stat_trading_pools?: string | null
@@ -63,8 +81,17 @@ export type Database = {
           first_deposit_min_amount?: number
           id?: string
           mt5_enabled?: boolean
+          otp_login_enabled?: boolean | null
           pools_enabled?: boolean
           registrations_enabled?: boolean
+          smtp_enabled?: boolean | null
+          smtp_from_email?: string | null
+          smtp_from_name?: string | null
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number | null
+          smtp_secure?: boolean | null
+          smtp_username?: string | null
           stat_active_traders?: string | null
           stat_total_volume?: string | null
           stat_trading_pools?: string | null
@@ -166,6 +193,36 @@ export type Database = {
           },
         ]
       }
+      email_log: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          status: string
+          subject: string
+          template: string | null
+          to_email: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          status?: string
+          subject: string
+          template?: string | null
+          to_email: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          status?: string
+          subject?: string
+          template?: string | null
+          to_email?: string
+        }
+        Relationships: []
+      }
       mt5_accounts: {
         Row: {
           admin_note: string | null
@@ -258,6 +315,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      otp_codes: {
+        Row: {
+          code: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          purpose: string
+          used: boolean
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          purpose?: string
+          used?: boolean
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          purpose?: string
+          used?: boolean
+        }
+        Relationships: []
       }
       pool_chat_messages: {
         Row: {
