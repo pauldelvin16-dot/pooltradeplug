@@ -1,0 +1,9 @@
+{
+  "nav": { "home": "होम", "wallet": "वॉलेट", "mt5": "MT5", "pools": "पूल", "chat": "चैट", "profile": "प्रोफाइल", "signin": "लॉगिन", "getStarted": "शुरू करें", "features": "विशेषताएं", "terms": "शर्तें" },
+  "hero": { "badge": "लाइव ट्रेडिंग प्लेटफार्म", "title1": "स्मार्ट ट्रेडिंग करें", "title2": "एलीट एक्सेस के साथ", "subtitle": "विश्व स्तरीय ट्रेडिंग प्रबंधन प्लेटफार्म। MT5 खाते, पूल ट्रेडिंग, USDT जमा — सब कुछ एक सुरक्षित अनुभव में।", "startTrading": "ट्रेडिंग शुरू करें", "signIn": "लॉगिन" },
+  "stats": { "activeTraders": "सक्रिय ट्रेडर्स", "totalVolume": "कुल वॉल्यूम", "tradingPools": "ट्रेडिंग पूल", "uptime": "अपटाइम" },
+  "wallet": { "title": "वॉलेट", "subtitle": "आपका बैलेंस, जमा और निकासी एक ही जगह", "available": "उपलब्ध बैलेंस", "deposit": "जमा करें", "withdraw": "निकालें", "deposits": "जमा", "withdrawals": "निकासी", "noHistory": "अभी तक कोई {{type}} नहीं" },
+  "pools": { "title": "पूल ट्रेडिंग", "subtitle": "साझा लाभ के लिए एक्सक्लूसिव पूल में शामिल हों", "joinPool": "पूल में शामिल हों", "joining": "जुड़ रहे हैं...", "insufficientBalance": "अपर्याप्त बैलेंस", "joined": "✓ आप इस पूल में शामिल हो गए", "full": "पूल भरा", "poolChat": "पूल चैट", "closeChat": "बंद करें", "target": "लक्ष्य", "participants": "प्रतिभागी", "entryAmount": "प्रवेश राशि", "timeLeft": "शेष समय", "profitSplit": "लाभ विभाजन", "profitProgress": "प्रगति", "needMore": "${{amount}} और चाहिए" },
+  "chat": { "title": "पूल चैट रूम", "subtitle": "चैट शुरू करने के लिए भरे पूल में शामिल हों", "noActive": "कोई सक्रिय चैट नहीं", "noActiveDesc": "एक पूल में शामिल हों — जब यह भर जाए तो आपको लाइव चैट तक तत्काल पहुँच मिलेगी।", "noMessages": "अभी कोई संदेश नहीं — हाय कहें 👋", "placeholder": "संदेश लिखें…", "tradersOnline": "{{current}}/{{max}} ट्रेडर्स ऑनलाइन" },
+  "common": { "language": "भाषा", "loading": "लोड हो रहा है...", "save": "सहेजें", "cancel": "रद्द करें", "close": "बंद करें" }
+}

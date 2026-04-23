@@ -1,0 +1,9 @@
+{
+  "nav": { "home": "首页", "wallet": "钱包", "mt5": "MT5", "pools": "资金池", "chat": "聊天", "profile": "个人资料", "signin": "登录", "getStarted": "开始", "features": "功能", "terms": "条款" },
+  "hero": { "badge": "实时交易平台", "title1": "更智能地交易,享受", "title2": "精英特权", "subtitle": "世界级交易管理平台。MT5账户、资金池交易、USDT存款 — 集安全与奢华于一体。", "startTrading": "开始交易", "signIn": "登录" },
+  "stats": { "activeTraders": "活跃交易者", "totalVolume": "总交易量", "tradingPools": "交易池", "uptime": "正常运行时间" },
+  "wallet": { "title": "钱包", "subtitle": "您的余额、存款和取款集中管理", "available": "可用余额", "deposit": "存款", "withdraw": "取款", "deposits": "存款", "withdrawals": "取款", "noHistory": "暂无{{type}}" },
+  "pools": { "title": "资金池交易", "subtitle": "加入专属交易池,共享利润", "joinPool": "加入资金池", "joining": "加入中...", "insufficientBalance": "余额不足", "joined": "✓ 您已加入此池", "full": "已满员", "poolChat": "池聊天", "closeChat": "关闭", "target": "目标", "participants": "参与者", "entryAmount": "入场金额", "timeLeft": "剩余时间", "profitSplit": "利润分成", "profitProgress": "进度", "needMore": "还需 ${{amount}}" },
+  "chat": { "title": "资金池聊天室", "subtitle": "加入满员的池子开始聊天", "noActive": "没有活跃聊天", "noActiveDesc": "加入交易池 — 池子满员后即可立即聊天。", "noMessages": "暂无消息 — 打个招呼 👋", "placeholder": "输入消息…", "tradersOnline": "{{current}}/{{max}} 位交易者在线" },
+  "common": { "language": "语言", "loading": "加载中...", "save": "保存", "cancel": "取消", "close": "关闭" }
+}

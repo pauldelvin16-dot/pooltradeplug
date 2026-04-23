@@ -1,0 +1,9 @@
+{
+  "nav": { "home": "Nyumbani", "wallet": "Mkoba", "mt5": "MT5", "pools": "Mabwawa", "chat": "Soga", "profile": "Wasifu", "signin": "Ingia", "getStarted": "Anza", "features": "Vipengele", "terms": "Masharti" },
+  "hero": { "badge": "Jukwaa la Biashara la Moja kwa Moja", "title1": "Fanya Biashara kwa Akili na", "title2": "Ufikiaji wa Hadhi ya Juu", "subtitle": "Jukwaa bora la usimamizi wa biashara. Akaunti za MT5, biashara ya mabwawa, amana za USDT — yote katika uzoefu salama.", "startTrading": "Anza Biashara", "signIn": "Ingia" },
+  "stats": { "activeTraders": "Wachuuzi Hai", "totalVolume": "Ujazo wa Jumla", "tradingPools": "Mabwawa ya Biashara", "uptime": "Uwepo" },
+  "wallet": { "title": "Mkoba", "subtitle": "Salio, amana na malipo yako mahali pamoja", "available": "Salio Lililopo", "deposit": "Weka", "withdraw": "Toa", "deposits": "Amana", "withdrawals": "Malipo", "noHistory": "Hakuna {{type}} bado" },
+  "pools": { "title": "Biashara ya Mabwawa", "subtitle": "Jiunge na mabwawa maalum kwa faida za pamoja", "joinPool": "Jiunge", "joining": "Inajiunga...", "insufficientBalance": "Salio Halitoshi", "joined": "✓ Umejiunga na bwawa hili", "full": "Bwawa limejaa", "poolChat": "Soga la Bwawa", "closeChat": "Funga", "target": "Lengo", "participants": "Washiriki", "entryAmount": "Kiasi cha Kuingia", "timeLeft": "Muda Uliobaki", "profitSplit": "Mgawanyo wa Faida", "profitProgress": "Maendeleo", "needMore": "Unahitaji ${{amount}} zaidi" },
+  "chat": { "title": "Chumba cha Soga la Bwawa", "subtitle": "Jiunge na bwawa lililojaa kuanza soga", "noActive": "Hakuna soga hai", "noActiveDesc": "Jiunge na bwawa — likijaa, utapata soga la moja kwa moja.", "noMessages": "Hakuna ujumbe — sema habari 👋", "placeholder": "Andika ujumbe…", "tradersOnline": "{{current}}/{{max}} wachuuzi mtandaoni" },
+  "common": { "language": "Lugha", "loading": "Inapakia...", "save": "Hifadhi", "cancel": "Ghairi", "close": "Funga" }
+}

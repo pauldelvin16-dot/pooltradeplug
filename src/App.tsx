@@ -13,6 +13,7 @@ import DashboardHome from "./pages/dashboard/DashboardHome";
 import DepositsPage from "./pages/dashboard/DepositsPage";
 import WithdrawalsPage from "./pages/dashboard/WithdrawalsPage";
 import WalletPage from "./pages/dashboard/WalletPage";
+import ChatPage from "./pages/dashboard/ChatPage";
 import MT5Page from "./pages/dashboard/MT5Page";
 import PoolsPage from "./pages/dashboard/PoolsPage";
 import ProfilePage from "./pages/dashboard/ProfilePage";
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="withdrawals" element={<WithdrawalsPage />} />
               <Route path="mt5" element={<MT5Page />} />
               <Route path="pools" element={<PoolsPage />} />
+              <Route path="chat" element={<ChatPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="settings" element={<SettingsPage />} />
