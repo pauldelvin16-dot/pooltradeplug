@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, Send, Users } from "lucide-react";
+import { MessageSquare, Send, Users, Lock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,33 +10,36 @@ import { toast } from "sonner";
 
 /**
  * PoolChatRoom — visible to all users.
- * Shows a chat for the user's first FULL pool they joined.
- * If they're not in any full pool, shows an inviting empty state.
+ * - In a full active pool: live chat enabled
+ * - In a non-full pool: locked state ("waiting for pool to fill")
+ * - Not in any pool: invite to browse pools
  */
 const PoolChatRoom = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Find a full, active pool the user has joined
-  const { data: activeChatPool } = useQuery({
-    queryKey: ["my-active-chat-pool", user?.id],
+  // Find pools the user has joined
+  const { data: joinedPools = [] } = useQuery({
+    queryKey: ["my-joined-pools", user?.id],
     queryFn: async () => {
-      if (!user) return null;
+      if (!user) return [];
       const { data: parts } = await supabase
         .from("pool_participants").select("pool_id").eq("user_id", user.id);
-      if (!parts || parts.length === 0) return null;
+      if (!parts || parts.length === 0) return [];
       const ids = parts.map((p: any) => p.pool_id);
       const { data: pools } = await supabase
         .from("pools").select("*").in("id", ids).eq("status", "active");
-      if (!pools) return null;
-      // Pool is "chat-eligible" when it's full
-      const eligible = pools.find((p: any) => p.current_participants >= p.max_participants);
-      return eligible || null;
+      return pools || [];
     },
     enabled: !!user,
+    refetchInterval: 15000,
   });
+
+  const activeChatPool = joinedPools.find((p: any) => p.current_participants >= p.max_participants) || null;
+  const waitingPool = !activeChatPool ? joinedPools[0] || null : null;
 
   const poolId = activeChatPool?.id;
 
