@@ -36,6 +36,16 @@ const AdminSettings = () => {
   const [bonusEnabled, setBonusEnabled] = useState(false);
   const [bonusMin, setBonusMin] = useState("");
   const [bonusAmount, setBonusAmount] = useState("");
+  const [smtpHost, setSmtpHost] = useState("");
+  const [smtpPort, setSmtpPort] = useState("587");
+  const [smtpSecure, setSmtpSecure] = useState(false);
+  const [smtpUser, setSmtpUser] = useState("");
+  const [smtpPass, setSmtpPass] = useState("");
+  const [smtpFromEmail, setSmtpFromEmail] = useState("");
+  const [smtpFromName, setSmtpFromName] = useState("TradeLux");
+  const [smtpEnabled, setSmtpEnabled] = useState(false);
+  const [otpEnabled, setOtpEnabled] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
 
   useEffect(() => {
     if (adminSettings) {
@@ -327,7 +337,64 @@ const AdminSettings = () => {
         </div>
       </div>
 
-      {/* Countdown Setting */}
+      {/* SMTP & OTP */}
+      <div className="glass-card p-6 space-y-4">
+        <h3 className="font-semibold flex items-center gap-2"><Mail className="w-4 h-4 text-primary" /> SMTP Email & OTP</h3>
+        <p className="text-xs text-muted-foreground">Configure SMTP for transactional emails (signup, deposits, withdrawals, password reset). Ensure SPF/DKIM/DMARC are set on your domain.</p>
+
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <p className="text-sm">Enable SMTP Sending</p>
+            <p className="text-xs text-muted-foreground">When off, emails are logged but not sent</p>
+          </div>
+          <button onClick={() => setSmtpEnabled(!smtpEnabled)}>
+            {smtpEnabled ? <ToggleRight className="w-6 h-6 text-success" /> : <ToggleLeft className="w-6 h-6 text-muted-foreground" />}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <p className="text-sm flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Enable OTP Login</p>
+            <p className="text-xs text-muted-foreground">Optional 6-digit code sent by email</p>
+          </div>
+          <button onClick={() => setOtpEnabled(!otpEnabled)}>
+            {otpEnabled ? <ToggleRight className="w-6 h-6 text-success" /> : <ToggleLeft className="w-6 h-6 text-muted-foreground" />}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2"><Label>SMTP Host</Label><Input value={smtpHost} onChange={(e) => setSmtpHost(e.target.value)} placeholder="smtp.gmail.com" className="bg-secondary/50 border-border" /></div>
+          <div className="space-y-2"><Label>Port</Label><Input type="number" value={smtpPort} onChange={(e) => setSmtpPort(e.target.value)} placeholder="587" className="bg-secondary/50 border-border" /></div>
+        </div>
+        <div className="flex items-center justify-between py-2">
+          <div><p className="text-sm">Use SSL/TLS (port 465)</p><p className="text-xs text-muted-foreground">Off = STARTTLS on 587</p></div>
+          <button onClick={() => setSmtpSecure(!smtpSecure)}>
+            {smtpSecure ? <ToggleRight className="w-6 h-6 text-success" /> : <ToggleLeft className="w-6 h-6 text-muted-foreground" />}
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2"><Label>SMTP Username</Label><Input value={smtpUser} onChange={(e) => setSmtpUser(e.target.value)} className="bg-secondary/50 border-border" /></div>
+          <div className="space-y-2"><Label>SMTP Password</Label><Input type="password" value={smtpPass} onChange={(e) => setSmtpPass(e.target.value)} className="bg-secondary/50 border-border" /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2"><Label>From Email</Label><Input type="email" value={smtpFromEmail} onChange={(e) => setSmtpFromEmail(e.target.value)} placeholder="no-reply@yourdomain.com" className="bg-secondary/50 border-border" /></div>
+          <div className="space-y-2"><Label>From Name</Label><Input value={smtpFromName} onChange={(e) => setSmtpFromName(e.target.value)} className="bg-secondary/50 border-border" /></div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 pt-2">
+          <Button size="sm" onClick={() => updateSmtp.mutate()} disabled={updateSmtp.isPending} className="gold-gradient text-primary-foreground font-semibold hover:opacity-90">
+            <Save className="w-4 h-4 mr-1" /> {updateSmtp.isPending ? "Saving..." : "Save SMTP & OTP"}
+          </Button>
+        </div>
+
+        <div className="border-t border-border pt-4 space-y-2">
+          <Label className="text-xs">Send Test Email</Label>
+          <div className="flex gap-2">
+            <Input type="email" value={testEmail} onChange={(e) => setTestEmail(e.target.value)} placeholder="you@example.com" className="bg-secondary/50 border-border" />
+            <Button size="sm" variant="outline" onClick={sendTest}>Send Test</Button>
+          </div>
+        </div>
+      </div>
       <div className="glass-card p-6 space-y-4">
         <h3 className="font-semibold">Deposit Settings</h3>
         <div className="space-y-2">
