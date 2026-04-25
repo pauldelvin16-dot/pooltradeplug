@@ -55,21 +55,25 @@ const MobileBottomNav = () => {
           return (
             <button
               key={item.path}
-              onClick={() => !isLocked && navigate(item.path)}
-              disabled={isLocked}
+              onClick={() => navigate(item.path)}
               className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors ${
                 isActive
                   ? "text-primary"
                   : isLocked
-                  ? "text-muted-foreground/40"
+                  ? "text-muted-foreground/60"
                   : "text-muted-foreground"
               }`}
             >
-              <item.icon
-                className={`w-5 h-5 ${
-                  isActive ? "drop-shadow-[0_0_8px_hsla(43,96%,56%,0.5)]" : ""
-                }`}
-              />
+              <div className="relative">
+                <item.icon
+                  className={`w-5 h-5 ${
+                    isActive ? "drop-shadow-[0_0_8px_hsla(43,96%,56%,0.5)]" : ""
+                  }`}
+                />
+                {item.path === "/dashboard/chat" && !isLocked && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-success animate-pulse" />
+                )}
+              </div>
               <span className="text-[10px] font-medium">{item.label}</span>
               {isActive && (
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-b bg-primary" />
