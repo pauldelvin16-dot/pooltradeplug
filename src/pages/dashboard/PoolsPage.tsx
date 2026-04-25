@@ -284,7 +284,15 @@ const PoolsPage = () => {
                     {pool.description && <p className="text-xs text-muted-foreground">{pool.description}</p>}
                   </div>
                 </div>
-                <StatusBadge status={pool.status} />
+                <div className="flex items-center gap-2">
+                  {isFull && pool.status === "active" && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/15 border border-success/30 text-success text-[10px] font-bold uppercase tracking-wider">
+                      <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                      Live · +${parseFloat(pool.current_profit).toLocaleString()}
+                    </span>
+                  )}
+                  <StatusBadge status={pool.status} />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
