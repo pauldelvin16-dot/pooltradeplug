@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, Send, Users, Lock } from "lucide-react";
+import { MessageSquare, Send, Users, Lock, CheckCircle2, Circle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -38,8 +40,18 @@ const PoolChatRoom = () => {
     refetchInterval: 15000,
   });
 
-  const activeChatPool = joinedPools.find((p: any) => p.current_participants >= p.max_participants) || null;
-  const waitingPool = !activeChatPool ? joinedPools[0] || null : null;
+  // Eligible pools (full) — chat unlocked
+  const eligiblePools = joinedPools.filter((p: any) => p.current_participants >= p.max_participants);
+  // Waiting pools (not yet full) — sorted by closest to filling
+  const waitingPools = joinedPools
+    .filter((p: any) => p.current_participants < p.max_participants)
+    .sort((a: any, b: any) => (b.current_participants / b.max_participants) - (a.current_participants / a.max_participants));
+
+  // Allow user to pick which eligible pool to chat in (default: first)
+  const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null);
+  const activeChatPool =
+    eligiblePools.find((p: any) => p.id === selectedPoolId) || eligiblePools[0] || null;
+  const closestWaitingPool = !activeChatPool ? waitingPools[0] || null : null;
 
   const poolId = activeChatPool?.id;
 
@@ -102,20 +114,45 @@ const PoolChatRoom = () => {
       </div>
 
       {!activeChatPool ? (
-        <div className="text-center py-8 px-4 rounded-lg bg-secondary/20 border border-dashed border-border">
-          {waitingPool ? (
-            <>
-              <Lock className="w-10 h-10 mx-auto mb-3 text-primary/60" />
-              <p className="text-sm font-medium mb-1">Chat unlocks when your pool fills</p>
-              <p className="text-xs text-muted-foreground mb-3">
-                <span className="font-semibold text-foreground">{waitingPool.name}</span> · {waitingPool.current_participants}/{waitingPool.max_participants} traders joined
-              </p>
-              <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/pools")}>
-                View pool
-              </Button>
-            </>
+        <div className="py-6 px-4 rounded-lg bg-secondary/20 border border-dashed border-border">
+          {closestWaitingPool ? (
+            <div className="space-y-4">
+              <div className="text-center">
+                <Lock className="w-10 h-10 mx-auto mb-3 text-primary/60" />
+                <p className="text-sm font-medium mb-1">Chat unlocks when your pool fills</p>
+                <p className="text-xs text-muted-foreground">
+                  Almost there — keep an eye on your pools below
+                </p>
+              </div>
+
+              {waitingPools.map((p: any) => {
+                const pct = Math.min(100, (p.current_participants / p.max_participants) * 100);
+                const remaining = Math.max(0, p.max_participants - p.current_participants);
+                return (
+                  <div key={p.id} className="rounded-lg bg-card/60 border border-border p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-sm truncate">{p.name}</span>
+                      <Badge variant="secondary" className="shrink-0 text-[10px]">
+                        {remaining} {remaining === 1 ? "slot" : "slots"} left
+                      </Badge>
+                    </div>
+                    <Progress value={pct} className="h-2" />
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>{p.current_participants}/{p.max_participants} traders joined</span>
+                      <span>{Math.round(pct)}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="text-center">
+                <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/pools")}>
+                  View pools
+                </Button>
+              </div>
+            </div>
           ) : (
-            <>
+            <div className="text-center">
               <Users className="w-10 h-10 mx-auto mb-3 text-muted-foreground/60" />
               <p className="text-sm font-medium mb-1">Join a pool to unlock chat</p>
               <p className="text-xs text-muted-foreground mb-3">
@@ -124,11 +161,39 @@ const PoolChatRoom = () => {
               <Button size="sm" className="gold-gradient text-primary-foreground hover:opacity-90" onClick={() => navigate("/dashboard/pools")}>
                 Browse pools
               </Button>
-            </>
+            </div>
           )}
         </div>
       ) : (
         <>
+          {/* Pool selector when user is eligible in multiple pools */}
+          {eligiblePools.length > 1 && (
+            <div className="mb-3 p-2 rounded-lg bg-secondary/30 border border-border">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2 px-1">
+                You have chat access in {eligiblePools.length} pools — pick one
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {eligiblePools.map((p: any) => {
+                  const isActive = p.id === activeChatPool.id;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedPoolId(p.id)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-colors ${
+                        isActive
+                          ? "bg-primary/20 text-foreground border border-primary/40"
+                          : "bg-card/60 text-muted-foreground border border-border hover:text-foreground"
+                      }`}
+                    >
+                      {isActive ? <CheckCircle2 className="w-3 h-3 text-primary" /> : <Circle className="w-3 h-3" />}
+                      <span className="truncate max-w-[120px]">{p.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="h-56 md:h-64 overflow-y-auto space-y-2 mb-3 p-3 rounded-lg bg-secondary/30 border border-border">
             {messages.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-8">No messages yet — say hi 👋</p>
