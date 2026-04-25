@@ -36,6 +36,16 @@ const AdminSettings = () => {
   const [bonusEnabled, setBonusEnabled] = useState(false);
   const [bonusMin, setBonusMin] = useState("");
   const [bonusAmount, setBonusAmount] = useState("");
+  const [smtpHost, setSmtpHost] = useState("");
+  const [smtpPort, setSmtpPort] = useState("587");
+  const [smtpSecure, setSmtpSecure] = useState(false);
+  const [smtpUser, setSmtpUser] = useState("");
+  const [smtpPass, setSmtpPass] = useState("");
+  const [smtpFromEmail, setSmtpFromEmail] = useState("");
+  const [smtpFromName, setSmtpFromName] = useState("TradeLux");
+  const [smtpEnabled, setSmtpEnabled] = useState(false);
+  const [otpEnabled, setOtpEnabled] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
 
   useEffect(() => {
     if (adminSettings) {
