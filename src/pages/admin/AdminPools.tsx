@@ -183,9 +183,24 @@ const AdminPools = () => {
                   {(pool as any).profit_split_percentage || 70}% split
                 </p>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => openEdit(pool)} className="text-primary hover:bg-primary/10">
-                <Edit2 className="w-4 h-4 mr-1" /> Edit
-              </Button>
+              <div className="flex items-center gap-2">
+                {pool.status === "active" && pool.current_participants < pool.max_participants && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-success border-success/40 hover:bg-success/10"
+                    onClick={() => updatePool.mutate({
+                      id: pool.id,
+                      updates: { current_participants: pool.max_participants },
+                    })}
+                  >
+                    🚀 Force Start
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" onClick={() => openEdit(pool)} className="text-primary hover:bg-primary/10">
+                  <Edit2 className="w-4 h-4 mr-1" /> Edit
+                </Button>
+              </div>
             </div>
           ))
         )}
