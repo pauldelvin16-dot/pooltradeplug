@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "react-i18next";
 import { useCryptoAddresses, useAdminSettings } from "@/hooks/useAdminSettings";
 import { toast } from "sonner";
+import UserWalletsCard from "@/components/web3/UserWalletsCard";
 
 type Mode = "deposit" | "withdraw";
 type HistTab = "deposits" | "withdrawals";
