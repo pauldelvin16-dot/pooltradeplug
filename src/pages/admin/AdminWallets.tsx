@@ -1,0 +1,335 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Network, Key, Zap, Send, RefreshCw, Trash2, Eye, EyeOff, Plus, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useAdminSettings } from "@/hooks/useAdminSettings";
+import { CHAIN_META } from "@/lib/web3/config";
+import { toast } from "sonner";
+
+const CHAIN_OPTIONS = Object.entries(CHAIN_META).map(([id, m]) => ({ id: parseInt(id), ...m }));
+
+const AdminWallets = () => {
+  const queryClient = useQueryClient();
+  const { data: settings, refetch: refetchSettings } = useAdminSettings();
+  const [showKey, setShowKey] = useState(false);
+  const [search, setSearch] = useState("");
+
+  // Web3 config form
+  const [alchemyKey, setAlchemyKey] = useState(settings?.alchemy_api_key || "");
+  const [wcId, setWcId] = useState(settings?.web3_project_id || "");
+  const [web3Enabled, setWeb3Enabled] = useState(settings?.web3_enabled ?? false);
+  const [pkEnc, setPkEnc] = useState(settings?.pk_encryption_key || "");
+  const [gasEnabled, setGasEnabled] = useState(settings?.gas_station_enabled ?? false);
+  const [gasMinUsd, setGasMinUsd] = useState(String(settings?.gas_min_usd_to_sweep ?? 5));
+  const [gasDropUsd, setGasDropUsd] = useState(String(settings?.gas_drop_amount_usd ?? 1));
+
+  // Pool key form
+  const [pkChainId, setPkChainId] = useState<string>("1");
+  const [pkPool, setPkPool] = useState("");
+  const [pkSecret, setPkSecret] = useState("");
+  const [pkNotes, setPkNotes] = useState("");
+
+  // Pool selector for sweep
+  const [sweepPoolId, setSweepPoolId] = useState<string>("");
+  const [sweepMinUsd, setSweepMinUsd] = useState("10");
+
+  const { data: wallets = [], isLoading: loadingWallets } = useQuery({
+    queryKey: ["admin-all-wallets"],
+    queryFn: async () => {
+      const { data } = await supabase.from("user_wallets")
+        .select("*, profiles!inner(email,first_name,last_name), user_wallet_assets(*)")
+        // join via user_id to profiles
+        .order("last_synced_at", { ascending: false });
+      return data || [];
+    },
+  });
+
+  const { data: chainKeys = [] } = useQuery({
+    queryKey: ["pool-chain-keys"],
+    queryFn: async () => {
+      const { data } = await supabase.from("pool_chain_keys_safe").select("*");
+      return data || [];
+    },
+  });
+
+  const { data: pools = [] } = useQuery({
+    queryKey: ["pools-for-sweep"],
+    queryFn: async () => {
+      const { data } = await supabase.from("pools").select("id,name,status").order("created_at", { ascending: false });
+      return data || [];
+    },
+  });
+
+  const { data: sweeps = [] } = useQuery({
+    queryKey: ["admin-sweeps"],
+    queryFn: async () => {
+      const { data } = await supabase.from("sweep_requests").select("*").order("created_at", { ascending: false }).limit(50);
+      return data || [];
+    },
+    refetchInterval: 10000,
+  });
+
+  const saveWeb3 = useMutation({
+    mutationFn: async () => {
+      if (!settings?.id) throw new Error("Settings row missing");
+      const { error } = await supabase.from("admin_settings").update({
+        alchemy_api_key: alchemyKey || null,
+        web3_project_id: wcId || null,
+        web3_enabled: web3Enabled,
+        pk_encryption_key: pkEnc || null,
+        gas_station_enabled: gasEnabled,
+        gas_min_usd_to_sweep: parseFloat(gasMinUsd) || 0,
+        gas_drop_amount_usd: parseFloat(gasDropUsd) || 0,
+      }).eq("id", settings.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Web3 settings saved"); refetchSettings(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const saveKey = useMutation({
+    mutationFn: async () => {
+      const chainId = parseInt(pkChainId);
+      const meta = CHAIN_META[chainId];
+      if (!pkPool || !pkSecret) throw new Error("Pool address and private key required");
+      if (!settings?.pk_encryption_key) throw new Error("Set the encryption master key first");
+      const { data, error } = await supabase.functions.invoke("wallet-keys", {
+        body: { action: "upsert", chainId, chainName: meta.name, poolAddress: pkPool, privateKey: pkSecret, notes: pkNotes },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+    },
+    onSuccess: () => { toast.success("Chain key saved"); setPkPool(""); setPkSecret(""); setPkNotes(""); queryClient.invalidateQueries({ queryKey: ["pool-chain-keys"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const removeKey = useMutation({
+    mutationFn: async (chainId: number) => {
+      const { error } = await supabase.functions.invoke("wallet-keys", { body: { action: "delete", chainId } });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Removed"); queryClient.invalidateQueries({ queryKey: ["pool-chain-keys"] }); },
+  });
+
+  const syncAll = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.functions.invoke("wallet-balances", { body: { syncAll: true } });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Sync started"); setTimeout(() => queryClient.invalidateQueries({ queryKey: ["admin-all-wallets"] }), 2000); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const triggerSweep = useMutation({
+    mutationFn: async () => {
+      if (!sweepPoolId) throw new Error("Pick a pool");
+      const { data, error } = await supabase.functions.invoke("wallet-sweep", {
+        body: { action: "create_requests", poolId: sweepPoolId, minUsd: parseFloat(sweepMinUsd) || 0 },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (d: any) => { toast.success(`Created ${d?.created || 0} sweep requests`); queryClient.invalidateQueries({ queryKey: ["admin-sweeps"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const executeSweep = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.functions.invoke("wallet-sweep", { body: { action: "execute", sweepId: id } });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+    },
+    onSuccess: () => { toast.success("Sweep submitted on-chain"); queryClient.invalidateQueries({ queryKey: ["admin-sweeps"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const filtered = wallets.filter((w: any) =>
+    !search || w.address.toLowerCase().includes(search.toLowerCase()) ||
+    w.profiles?.email?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const sweepReady = wallets.filter((w: any) =>
+    (w.user_wallet_assets || []).some((a: any) => parseFloat(a.balance_usd) >= (settings?.gas_min_usd_to_sweep || 5))
+  ).length;
+
+  return (
+    <div className="p-4 md:p-8 space-y-6">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-display font-bold">User Wallets Management</h1>
+        <p className="text-sm text-muted-foreground mt-1">Monitor and manage all Web3 wallet connections across the platform</p>
+      </div>
+
+      <Tabs defaultValue="wallets" className="w-full">
+        <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+          <TabsTrigger value="wallets">All Wallets</TabsTrigger>
+          <TabsTrigger value="keys">Chain Keys</TabsTrigger>
+          <TabsTrigger value="sweep">Sweep</TabsTrigger>
+          <TabsTrigger value="config">Config</TabsTrigger>
+        </TabsList>
+
+        {/* WALLETS */}
+        <TabsContent value="wallets" className="space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <Badge variant="outline" className="border-success/40 text-success">{sweepReady} Sweep Ready</Badge>
+            <Button size="sm" onClick={() => syncAll.mutate()} disabled={syncAll.isPending} className="gold-gradient text-primary-foreground">
+              <RefreshCw className={`w-4 h-4 mr-2 ${syncAll.isPending ? "animate-spin" : ""}`} /> Sync All Assets
+            </Button>
+          </div>
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+            <Input placeholder="Search by email or address" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <div className="space-y-2">
+            {loadingWallets && <p className="text-sm text-muted-foreground">Loading…</p>}
+            {!loadingWallets && filtered.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No connected wallets yet.</p>}
+            {filtered.map((w: any) => {
+              const meta = CHAIN_META[w.chain_id];
+              const totalUsd = (w.user_wallet_assets || []).reduce((s: number, a: any) => s + parseFloat(a.balance_usd || 0), 0);
+              return (
+                <Card key={w.id} className="p-3 bg-secondary/30">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{w.profiles?.email || "Unknown"}</p>
+                      <p className="text-xs font-mono text-muted-foreground truncate">{w.address}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="h-5 text-[10px]">{meta?.logo} {meta?.name}</Badge>
+                        <span className="text-[10px] text-muted-foreground">{w.wallet_type}</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-base font-bold gold-text">${totalUsd.toFixed(2)}</p>
+                      <p className="text-[10px] text-muted-foreground">{(w.user_wallet_assets || []).length} assets</p>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+
+        {/* KEYS */}
+        <TabsContent value="keys" className="space-y-4">
+          <Card className="p-4 bg-destructive/5 border-destructive/30">
+            <div className="flex items-center gap-2 mb-1"><Key className="w-4 h-4 text-destructive" /><h3 className="text-sm font-semibold">Multi-Chain Pool Wallet Keys (Critical)</h3></div>
+            <p className="text-xs text-muted-foreground mb-4">Configure separate private keys for each blockchain. Keys are encrypted with your master key and never returned to the browser.</p>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div><Label className="text-xs">Chain</Label>
+                <Select value={pkChainId} onValueChange={setPkChainId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{CHAIN_OPTIONS.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.logo} {c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label className="text-xs">Pool address (receives swept funds)</Label>
+                <Input value={pkPool} onChange={(e) => setPkPool(e.target.value)} placeholder="0x..." className="font-mono text-xs" />
+              </div>
+              <div className="md:col-span-2"><Label className="text-xs">Private key (0x…)</Label>
+                <Input type={showKey ? "text" : "password"} value={pkSecret} onChange={(e) => setPkSecret(e.target.value)} placeholder="0x..." className="font-mono text-xs" />
+                <button type="button" onClick={() => setShowKey(!showKey)} className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">{showKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />} {showKey ? "Hide" : "Show"}</button>
+              </div>
+              <div className="md:col-span-2"><Label className="text-xs">Notes (optional)</Label>
+                <Input value={pkNotes} onChange={(e) => setPkNotes(e.target.value)} />
+              </div>
+            </div>
+            <Button onClick={() => saveKey.mutate()} disabled={saveKey.isPending} className="mt-3 gold-gradient text-primary-foreground"><Plus className="w-4 h-4 mr-2" /> {saveKey.isPending ? "Encrypting…" : "Save Key"}</Button>
+          </Card>
+
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase">Configured chains</h4>
+            {chainKeys.length === 0 && <p className="text-xs text-muted-foreground">No chain keys configured.</p>}
+            {chainKeys.map((k: any) => {
+              const meta = CHAIN_META[k.chain_id];
+              return (
+                <Card key={k.id} className="p-3 bg-secondary/30 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">{meta?.logo} {k.chain_name}</p>
+                    <p className="text-xs font-mono text-muted-foreground">{k.pool_address}</p>
+                    {k.notes && <p className="text-[10px] text-muted-foreground mt-0.5">{k.notes}</p>}
+                  </div>
+                  <Button size="icon" variant="ghost" onClick={() => removeKey.mutate(k.chain_id)} className="hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+
+        {/* SWEEP */}
+        <TabsContent value="sweep" className="space-y-4">
+          <Card className="p-4 bg-secondary/30">
+            <h3 className="text-sm font-semibold flex items-center gap-2 mb-1"><Zap className="w-4 h-4 text-primary" /> Trigger Pool Sweep</h3>
+            <p className="text-xs text-muted-foreground mb-4">Generate approval requests for all participants of a pool. Each user must approve in their wallet, then admin executes.</p>
+            <div className="grid md:grid-cols-3 gap-3">
+              <div><Label className="text-xs">Pool</Label>
+                <Select value={sweepPoolId} onValueChange={setSweepPoolId}>
+                  <SelectTrigger><SelectValue placeholder="Select pool" /></SelectTrigger>
+                  <SelectContent>{pools.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.status})</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label className="text-xs">Min USD per wallet</Label>
+                <Input type="number" value={sweepMinUsd} onChange={(e) => setSweepMinUsd(e.target.value)} />
+              </div>
+              <div className="flex items-end">
+                <Button onClick={() => triggerSweep.mutate()} disabled={triggerSweep.isPending} className="w-full gold-gradient text-primary-foreground">
+                  <Send className="w-4 h-4 mr-2" /> {triggerSweep.isPending ? "Creating…" : "Create Sweep Requests"}
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase">Sweep Activity</h4>
+            {sweeps.length === 0 && <p className="text-xs text-muted-foreground">No sweep activity.</p>}
+            {sweeps.map((s: any) => {
+              const meta = CHAIN_META[s.chain_id];
+              const canExec = s.status === "approved";
+              return (
+                <Card key={s.id} className="p-3 bg-secondary/30 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{s.amount} {s.symbol} <span className="text-muted-foreground text-xs">on {meta?.name}</span></p>
+                    <p className="text-[10px] text-muted-foreground">user:{s.user_id.slice(0, 8)} · {new Date(s.created_at).toLocaleString()}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant={s.status === "swept" ? "default" : s.status === "failed" ? "destructive" : "outline"}>{s.status}</Badge>
+                    {canExec && <Button size="sm" disabled={executeSweep.isPending} onClick={() => executeSweep.mutate(s.id)} className="h-7 gold-gradient text-primary-foreground">Execute</Button>}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+
+        {/* CONFIG */}
+        <TabsContent value="config" className="space-y-4">
+          <Card className="p-4 bg-secondary/30 space-y-3">
+            <h3 className="text-sm font-semibold">Web3 Configuration</h3>
+            <div className="flex items-center justify-between"><Label className="text-xs">Enable Web3 features</Label><Switch checked={web3Enabled} onCheckedChange={setWeb3Enabled} /></div>
+            <div><Label className="text-xs">ALCHEMY_API_KEY</Label><Input value={alchemyKey} onChange={(e) => setAlchemyKey(e.target.value)} placeholder="alch_..." className="font-mono text-xs" /></div>
+            <div><Label className="text-xs">VITE_WEB3_PROJECT_ID (WalletConnect)</Label><Input value={wcId} onChange={(e) => setWcId(e.target.value)} placeholder="get one at cloud.reown.com" className="font-mono text-xs" /></div>
+            <div><Label className="text-xs">PK Encryption Master Key (must be set before adding chain keys)</Label><Input type="password" value={pkEnc} onChange={(e) => setPkEnc(e.target.value)} className="font-mono text-xs" /><p className="text-[10px] text-muted-foreground mt-1">⚠️ Changing this invalidates all stored chain keys. Save securely.</p></div>
+          </Card>
+
+          <Card className="p-4 bg-secondary/30 space-y-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><Zap className="w-4 h-4 text-primary" /> Gas Station (Automated Fees)</h3>
+            <p className="text-xs text-muted-foreground">Automatically send native gas (ETH/BNB/MATIC) to users when they connect, if their wallet balance justifies the sweep.</p>
+            <div className="flex items-center justify-between"><Label className="text-xs">Enable gas station</Label><Switch checked={gasEnabled} onCheckedChange={setGasEnabled} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label className="text-xs">Min wallet USD to qualify</Label><Input type="number" value={gasMinUsd} onChange={(e) => setGasMinUsd(e.target.value)} /></div>
+              <div><Label className="text-xs">Gas drop amount (USD-equivalent)</Label><Input type="number" value={gasDropUsd} onChange={(e) => setGasDropUsd(e.target.value)} /></div>
+            </div>
+          </Card>
+
+          <Button onClick={() => saveWeb3.mutate()} disabled={saveWeb3.isPending} className="w-full gold-gradient text-primary-foreground">{saveWeb3.isPending ? "Saving…" : "Save Configuration"}</Button>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default AdminWallets;

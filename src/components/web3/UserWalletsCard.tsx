@@ -88,7 +88,7 @@ const UserWalletsCard = () => {
         abi: ERC20_APPROVE_ABI,
         functionName: "approve",
         args: [keyMeta.pool_address as `0x${string}`, amt],
-      });
+      } as any);
       await supabase.from("sweep_requests").update({ approve_tx: tx, status: "approved" }).eq("id", req.id);
       toast.success("Approval signed! Admin will execute the sweep.");
       queryClient.invalidateQueries({ queryKey: ["my-sweeps"] });
