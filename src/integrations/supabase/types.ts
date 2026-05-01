@@ -905,6 +905,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      read_chain_pk: {
+        Args: { _chain_id: number; _master: string }
+        Returns: {
+          pool_address: string
+          private_key: string
+        }[]
+      }
+      upsert_chain_key: {
+        Args: {
+          _chain_id: number
+          _chain_name: string
+          _master: string
+          _notes: string
+          _pk: string
+          _pool: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "trader" | "user"
