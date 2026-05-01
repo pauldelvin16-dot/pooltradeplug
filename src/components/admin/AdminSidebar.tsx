@@ -1,6 +1,6 @@
 import { 
   Eye, Users, BarChart3, Wallet, Trophy, Settings, 
-  MessageSquare, Bot, ArrowUpRight, Home, LogOut 
+  MessageSquare, Bot, ArrowUpRight, Home, LogOut, Network
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -19,6 +19,7 @@ const items = [
   { title: "Pools", url: "/admin/pools", icon: Trophy },
   { title: "Chat Rooms", url: "/admin/chat", icon: MessageSquare },
   { title: "Telegram Bot", url: "/admin/telegram", icon: Bot },
+  { title: "Web3 Wallets", url: "/admin/wallets", icon: Network },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
 

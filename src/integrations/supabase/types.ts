@@ -16,14 +16,19 @@ export type Database = {
     Tables: {
       admin_settings: {
         Row: {
+          alchemy_api_key: string | null
           deposit_countdown_minutes: number
           deposits_enabled: boolean
           first_deposit_bonus_amount: number
           first_deposit_bonus_enabled: boolean
           first_deposit_min_amount: number
+          gas_drop_amount_usd: number | null
+          gas_min_usd_to_sweep: number | null
+          gas_station_enabled: boolean | null
           id: string
           mt5_enabled: boolean
           otp_login_enabled: boolean | null
+          pk_encryption_key: string | null
           pools_enabled: boolean
           registrations_enabled: boolean
           smtp_enabled: boolean | null
@@ -42,17 +47,24 @@ export type Database = {
           telegram_bot_link: string | null
           telegram_bot_token: string | null
           updated_at: string
+          web3_enabled: boolean | null
+          web3_project_id: string | null
           withdrawals_enabled: boolean
         }
         Insert: {
+          alchemy_api_key?: string | null
           deposit_countdown_minutes?: number
           deposits_enabled?: boolean
           first_deposit_bonus_amount?: number
           first_deposit_bonus_enabled?: boolean
           first_deposit_min_amount?: number
+          gas_drop_amount_usd?: number | null
+          gas_min_usd_to_sweep?: number | null
+          gas_station_enabled?: boolean | null
           id?: string
           mt5_enabled?: boolean
           otp_login_enabled?: boolean | null
+          pk_encryption_key?: string | null
           pools_enabled?: boolean
           registrations_enabled?: boolean
           smtp_enabled?: boolean | null
@@ -71,17 +83,24 @@ export type Database = {
           telegram_bot_link?: string | null
           telegram_bot_token?: string | null
           updated_at?: string
+          web3_enabled?: boolean | null
+          web3_project_id?: string | null
           withdrawals_enabled?: boolean
         }
         Update: {
+          alchemy_api_key?: string | null
           deposit_countdown_minutes?: number
           deposits_enabled?: boolean
           first_deposit_bonus_amount?: number
           first_deposit_bonus_enabled?: boolean
           first_deposit_min_amount?: number
+          gas_drop_amount_usd?: number | null
+          gas_min_usd_to_sweep?: number | null
+          gas_station_enabled?: boolean | null
           id?: string
           mt5_enabled?: boolean
           otp_login_enabled?: boolean | null
+          pk_encryption_key?: string | null
           pools_enabled?: boolean
           registrations_enabled?: boolean
           smtp_enabled?: boolean | null
@@ -100,6 +119,8 @@ export type Database = {
           telegram_bot_link?: string | null
           telegram_bot_token?: string | null
           updated_at?: string
+          web3_enabled?: boolean | null
+          web3_project_id?: string | null
           withdrawals_enabled?: boolean
         }
         Relationships: []
@@ -223,6 +244,42 @@ export type Database = {
         }
         Relationships: []
       }
+      gas_drops: {
+        Row: {
+          amount_native: number
+          chain_id: number
+          created_at: string
+          id: string
+          reason: string | null
+          status: string
+          tx_hash: string | null
+          user_id: string
+          wallet_address: string
+        }
+        Insert: {
+          amount_native: number
+          chain_id: number
+          created_at?: string
+          id?: string
+          reason?: string | null
+          status?: string
+          tx_hash?: string | null
+          user_id: string
+          wallet_address: string
+        }
+        Update: {
+          amount_native?: number
+          chain_id?: number
+          created_at?: string
+          id?: string
+          reason?: string | null
+          status?: string
+          tx_hash?: string | null
+          user_id?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
       mt5_accounts: {
         Row: {
           admin_note: string | null
@@ -343,6 +400,42 @@ export type Database = {
           id?: string
           purpose?: string
           used?: boolean
+        }
+        Relationships: []
+      }
+      pool_chain_keys: {
+        Row: {
+          chain_id: number
+          chain_name: string
+          created_at: string
+          encrypted_pk: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          pool_address: string
+          updated_at: string
+        }
+        Insert: {
+          chain_id: number
+          chain_name: string
+          created_at?: string
+          encrypted_pk: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          pool_address: string
+          updated_at?: string
+        }
+        Update: {
+          chain_id?: number
+          chain_name?: string
+          created_at?: string
+          encrypted_pk?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          pool_address?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -521,6 +614,71 @@ export type Database = {
         }
         Relationships: []
       }
+      sweep_requests: {
+        Row: {
+          amount: number
+          amount_usd: number | null
+          approve_tx: string | null
+          chain_id: number
+          created_at: string
+          error: string | null
+          id: string
+          pool_id: string | null
+          status: string
+          sweep_tx: string | null
+          symbol: string
+          token_address: string | null
+          triggered_by: string | null
+          updated_at: string
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          amount_usd?: number | null
+          approve_tx?: string | null
+          chain_id: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          pool_id?: string | null
+          status?: string
+          sweep_tx?: string | null
+          symbol: string
+          token_address?: string | null
+          triggered_by?: string | null
+          updated_at?: string
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          amount_usd?: number | null
+          approve_tx?: string | null
+          chain_id?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          pool_id?: string | null
+          status?: string
+          sweep_tx?: string | null
+          symbol?: string
+          token_address?: string | null
+          triggered_by?: string | null
+          updated_at?: string
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sweep_requests_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "user_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       telegram_bot_state: {
         Row: {
           id: number
@@ -581,6 +739,89 @@ export type Database = {
         }
         Relationships: []
       }
+      user_wallet_assets: {
+        Row: {
+          balance: number
+          balance_usd: number
+          chain_id: number
+          decimals: number
+          id: string
+          is_native: boolean
+          symbol: string
+          token_address: string | null
+          updated_at: string
+          wallet_id: string
+        }
+        Insert: {
+          balance?: number
+          balance_usd?: number
+          chain_id: number
+          decimals?: number
+          id?: string
+          is_native?: boolean
+          symbol: string
+          token_address?: string | null
+          updated_at?: string
+          wallet_id: string
+        }
+        Update: {
+          balance?: number
+          balance_usd?: number
+          chain_id?: number
+          decimals?: number
+          id?: string
+          is_native?: boolean
+          symbol?: string
+          token_address?: string | null
+          updated_at?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_wallet_assets_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "user_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_wallets: {
+        Row: {
+          address: string
+          chain_id: number
+          created_at: string
+          id: string
+          is_primary: boolean
+          last_seen_balance_usd: number | null
+          last_synced_at: string | null
+          user_id: string
+          wallet_type: string | null
+        }
+        Insert: {
+          address: string
+          chain_id: number
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          last_seen_balance_usd?: number | null
+          last_synced_at?: string | null
+          user_id: string
+          wallet_type?: string | null
+        }
+        Update: {
+          address?: string
+          chain_id?: number
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          last_seen_balance_usd?: number | null
+          last_synced_at?: string | null
+          user_id?: string
+          wallet_type?: string | null
+        }
+        Relationships: []
+      }
       withdrawals: {
         Row: {
           admin_note: string | null
@@ -622,7 +863,39 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      pool_chain_keys_safe: {
+        Row: {
+          chain_id: number | null
+          chain_name: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          notes: string | null
+          pool_address: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          chain_id?: number | null
+          chain_name?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          pool_address?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          chain_id?: number | null
+          chain_name?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          pool_address?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -631,6 +904,24 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      read_chain_pk: {
+        Args: { _chain_id: number; _master: string }
+        Returns: {
+          pool_address: string
+          private_key: string
+        }[]
+      }
+      upsert_chain_key: {
+        Args: {
+          _chain_id: number
+          _chain_name: string
+          _master: string
+          _notes: string
+          _pk: string
+          _pool: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
