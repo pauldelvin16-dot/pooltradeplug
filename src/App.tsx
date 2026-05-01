@@ -29,6 +29,8 @@ import AdminPools from "./pages/admin/AdminPools";
 import AdminChat from "./pages/admin/AdminChat";
 import AdminTelegram from "./pages/admin/AdminTelegram";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminWallets from "./pages/admin/AdminWallets";
+import { Web3Provider } from "@/lib/web3/Web3Provider";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import RiskPage from "./pages/RiskPage";
@@ -39,6 +41,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <Web3Provider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -69,6 +72,7 @@ const App = () => (
               <Route path="chat" element={<AdminChat />} />
               <Route path="telegram" element={<AdminTelegram />} />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="wallets" element={<AdminWallets />} />
             </Route>
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
@@ -77,6 +81,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </Web3Provider>
     </AuthProvider>
   </QueryClientProvider>
 );
