@@ -267,6 +267,9 @@ const WalletPage = () => {
         )}
       </div>
 
+      {/* Web3 Wallets */}
+      {settings?.web3_enabled && <UserWalletsCard />}
+
       {/* History */}
       <div className="glass-card p-4 md:p-6">
         <div className="flex items-center gap-2 mb-4">
