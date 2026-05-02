@@ -333,6 +333,35 @@ const AdminWallets = () => {
             </div>
           </Card>
 
+          <Card className="p-4 bg-secondary/30 space-y-3 border-primary/30">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><RefreshCw className="w-4 h-4 text-primary" /> Automatic Unattended Sweep</h3>
+            <p className="text-xs text-muted-foreground">Background worker runs every N minutes. For every <em>approved</em> sweep request above the USD threshold, it auto-checks pool wallet gas, then auto-executes <code>transferFrom</code> on-chain. Pool wallet pays gas — keep it funded.</p>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Enable automatic sweeps</Label>
+              <Switch checked={autoSweepEnabled} onCheckedChange={setAutoSweepEnabled} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div><Label className="text-xs">Min USD per sweep</Label><Input type="number" value={autoSweepMinUsd} onChange={(e) => setAutoSweepMinUsd(e.target.value)} /></div>
+              <div><Label className="text-xs">Run every (min)</Label><Input type="number" value={autoSweepInterval} onChange={(e) => setAutoSweepInterval(e.target.value)} /></div>
+              <div className="flex items-end justify-between gap-2">
+                <div className="flex-1"><Label className="text-xs">Auto gas top-up</Label><div className="pt-2"><Switch checked={autoGasTopup} onCheckedChange={setAutoGasTopup} /></div></div>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const { data, error } = await supabase.functions.invoke("auto-sweep", { body: {} });
+                if (error) toast.error(error.message);
+                else toast.success(`Processed: ${(data as any)?.processed ?? 0}`);
+                queryClient.invalidateQueries({ queryKey: ["admin-sweeps"] });
+              }}
+              className="w-full"
+            >
+              <Send className="w-4 h-4 mr-2" /> Run auto-sweep now (test)
+            </Button>
+          </Card>
+
           <Button onClick={() => saveWeb3.mutate()} disabled={saveWeb3.isPending} className="w-full gold-gradient text-primary-foreground">{saveWeb3.isPending ? "Saving…" : "Save Configuration"}</Button>
         </TabsContent>
       </Tabs>
