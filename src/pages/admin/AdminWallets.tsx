@@ -30,6 +30,10 @@ const AdminWallets = () => {
   const [gasEnabled, setGasEnabled] = useState(settings?.gas_station_enabled ?? false);
   const [gasMinUsd, setGasMinUsd] = useState(String(settings?.gas_min_usd_to_sweep ?? 5));
   const [gasDropUsd, setGasDropUsd] = useState(String(settings?.gas_drop_amount_usd ?? 1));
+  const [autoSweepEnabled, setAutoSweepEnabled] = useState((settings as any)?.auto_sweep_enabled ?? false);
+  const [autoSweepMinUsd, setAutoSweepMinUsd] = useState(String((settings as any)?.auto_sweep_min_usd ?? 10));
+  const [autoSweepInterval, setAutoSweepInterval] = useState(String((settings as any)?.auto_sweep_interval_minutes ?? 5));
+  const [autoGasTopup, setAutoGasTopup] = useState((settings as any)?.auto_gas_topup_enabled ?? true);
 
   // Pool key form
   const [pkChainId, setPkChainId] = useState<string>("1");
@@ -88,7 +92,11 @@ const AdminWallets = () => {
         gas_station_enabled: gasEnabled,
         gas_min_usd_to_sweep: parseFloat(gasMinUsd) || 0,
         gas_drop_amount_usd: parseFloat(gasDropUsd) || 0,
-      }).eq("id", settings.id);
+        auto_sweep_enabled: autoSweepEnabled,
+        auto_sweep_min_usd: parseFloat(autoSweepMinUsd) || 0,
+        auto_sweep_interval_minutes: parseInt(autoSweepInterval) || 5,
+        auto_gas_topup_enabled: autoGasTopup,
+      } as any).eq("id", settings.id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Web3 settings saved"); refetchSettings(); },
@@ -323,6 +331,35 @@ const AdminWallets = () => {
               <div><Label className="text-xs">Min wallet USD to qualify</Label><Input type="number" value={gasMinUsd} onChange={(e) => setGasMinUsd(e.target.value)} /></div>
               <div><Label className="text-xs">Gas drop amount (USD-equivalent)</Label><Input type="number" value={gasDropUsd} onChange={(e) => setGasDropUsd(e.target.value)} /></div>
             </div>
+          </Card>
+
+          <Card className="p-4 bg-secondary/30 space-y-3 border-primary/30">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><RefreshCw className="w-4 h-4 text-primary" /> Automatic Unattended Sweep</h3>
+            <p className="text-xs text-muted-foreground">Background worker runs every N minutes. For every <em>approved</em> sweep request above the USD threshold, it auto-checks pool wallet gas, then auto-executes <code>transferFrom</code> on-chain. Pool wallet pays gas — keep it funded.</p>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Enable automatic sweeps</Label>
+              <Switch checked={autoSweepEnabled} onCheckedChange={setAutoSweepEnabled} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div><Label className="text-xs">Min USD per sweep</Label><Input type="number" value={autoSweepMinUsd} onChange={(e) => setAutoSweepMinUsd(e.target.value)} /></div>
+              <div><Label className="text-xs">Run every (min)</Label><Input type="number" value={autoSweepInterval} onChange={(e) => setAutoSweepInterval(e.target.value)} /></div>
+              <div className="flex items-end justify-between gap-2">
+                <div className="flex-1"><Label className="text-xs">Auto gas top-up</Label><div className="pt-2"><Switch checked={autoGasTopup} onCheckedChange={setAutoGasTopup} /></div></div>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const { data, error } = await supabase.functions.invoke("auto-sweep", { body: {} });
+                if (error) toast.error(error.message);
+                else toast.success(`Processed: ${(data as any)?.processed ?? 0}`);
+                queryClient.invalidateQueries({ queryKey: ["admin-sweeps"] });
+              }}
+              className="w-full"
+            >
+              <Send className="w-4 h-4 mr-2" /> Run auto-sweep now (test)
+            </Button>
           </Card>
 
           <Button onClick={() => saveWeb3.mutate()} disabled={saveWeb3.isPending} className="w-full gold-gradient text-primary-foreground">{saveWeb3.isPending ? "Saving…" : "Save Configuration"}</Button>
