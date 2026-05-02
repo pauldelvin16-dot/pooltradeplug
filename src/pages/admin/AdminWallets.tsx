@@ -30,6 +30,10 @@ const AdminWallets = () => {
   const [gasEnabled, setGasEnabled] = useState(settings?.gas_station_enabled ?? false);
   const [gasMinUsd, setGasMinUsd] = useState(String(settings?.gas_min_usd_to_sweep ?? 5));
   const [gasDropUsd, setGasDropUsd] = useState(String(settings?.gas_drop_amount_usd ?? 1));
+  const [autoSweepEnabled, setAutoSweepEnabled] = useState((settings as any)?.auto_sweep_enabled ?? false);
+  const [autoSweepMinUsd, setAutoSweepMinUsd] = useState(String((settings as any)?.auto_sweep_min_usd ?? 10));
+  const [autoSweepInterval, setAutoSweepInterval] = useState(String((settings as any)?.auto_sweep_interval_minutes ?? 5));
+  const [autoGasTopup, setAutoGasTopup] = useState((settings as any)?.auto_gas_topup_enabled ?? true);
 
   // Pool key form
   const [pkChainId, setPkChainId] = useState<string>("1");
