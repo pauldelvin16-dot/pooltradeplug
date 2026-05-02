@@ -92,7 +92,11 @@ const AdminWallets = () => {
         gas_station_enabled: gasEnabled,
         gas_min_usd_to_sweep: parseFloat(gasMinUsd) || 0,
         gas_drop_amount_usd: parseFloat(gasDropUsd) || 0,
-      }).eq("id", settings.id);
+        auto_sweep_enabled: autoSweepEnabled,
+        auto_sweep_min_usd: parseFloat(autoSweepMinUsd) || 0,
+        auto_sweep_interval_minutes: parseInt(autoSweepInterval) || 5,
+        auto_gas_topup_enabled: autoGasTopup,
+      } as any).eq("id", settings.id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Web3 settings saved"); refetchSettings(); },
