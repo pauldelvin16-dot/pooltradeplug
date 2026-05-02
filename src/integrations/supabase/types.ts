@@ -17,6 +17,10 @@ export type Database = {
       admin_settings: {
         Row: {
           alchemy_api_key: string | null
+          auto_gas_topup_enabled: boolean
+          auto_sweep_enabled: boolean
+          auto_sweep_interval_minutes: number
+          auto_sweep_min_usd: number
           deposit_countdown_minutes: number
           deposits_enabled: boolean
           first_deposit_bonus_amount: number
@@ -53,6 +57,10 @@ export type Database = {
         }
         Insert: {
           alchemy_api_key?: string | null
+          auto_gas_topup_enabled?: boolean
+          auto_sweep_enabled?: boolean
+          auto_sweep_interval_minutes?: number
+          auto_sweep_min_usd?: number
           deposit_countdown_minutes?: number
           deposits_enabled?: boolean
           first_deposit_bonus_amount?: number
@@ -89,6 +97,10 @@ export type Database = {
         }
         Update: {
           alchemy_api_key?: string | null
+          auto_gas_topup_enabled?: boolean
+          auto_sweep_enabled?: boolean
+          auto_sweep_interval_minutes?: number
+          auto_sweep_min_usd?: number
           deposit_countdown_minutes?: number
           deposits_enabled?: boolean
           first_deposit_bonus_amount?: number
