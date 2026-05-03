@@ -26,7 +26,7 @@ const AdminWallets = () => {
   const [alchemyKey, setAlchemyKey] = useState(settings?.alchemy_api_key || "");
   const [wcId, setWcId] = useState(settings?.web3_project_id || "");
   const [web3Enabled, setWeb3Enabled] = useState(settings?.web3_enabled ?? false);
-  const [pkEnc, setPkEnc] = useState(settings?.pk_encryption_key || "");
+  // PK encryption key is auto-generated server-side on first key save
   const [gasEnabled, setGasEnabled] = useState(settings?.gas_station_enabled ?? false);
   const [gasMinUsd, setGasMinUsd] = useState(String(settings?.gas_min_usd_to_sweep ?? 5));
   const [gasDropUsd, setGasDropUsd] = useState(String(settings?.gas_drop_amount_usd ?? 1));
