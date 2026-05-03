@@ -53,12 +53,12 @@ export const buildWagmiConfig = (projectId: string) => {
     connectors,
     chains: SUPPORTED_CHAINS as any,
     transports: {
-      [mainnet.id]: http(),
-      [bsc.id]: http(),
-      [polygon.id]: http(),
-      [arbitrum.id]: http(),
-      [optimism.id]: http(),
-      [base.id]: http(),
+      [mainnet.id]: http(undefined, { timeout: 8000, retryCount: 1 }),
+      [bsc.id]: http(undefined, { timeout: 8000, retryCount: 1 }),
+      [polygon.id]: http(undefined, { timeout: 8000, retryCount: 1 }),
+      [arbitrum.id]: http(undefined, { timeout: 8000, retryCount: 1 }),
+      [optimism.id]: http(undefined, { timeout: 8000, retryCount: 1 }),
+      [base.id]: http(undefined, { timeout: 8000, retryCount: 1 }),
     },
     ssr: false,
   });

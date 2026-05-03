@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { CHAIN_META } from "@/lib/web3/config";
 import { toast } from "sonner";
+import WalletStatusPanel from "@/components/admin/WalletStatusPanel";
 
 const CHAIN_OPTIONS = Object.entries(CHAIN_META).map(([id, m]) => ({ id: parseInt(id), ...m }));
 
@@ -190,6 +191,7 @@ const AdminWallets = () => {
 
         {/* WALLETS */}
         <TabsContent value="wallets" className="space-y-4">
+          <WalletStatusPanel />
           <div className="flex items-center justify-between gap-2">
             <Badge variant="outline" className="border-success/40 text-success">{sweepReady} Sweep Ready</Badge>
             <Button size="sm" onClick={() => syncAll.mutate()} disabled={syncAll.isPending} className="gold-gradient text-primary-foreground">

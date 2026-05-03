@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import StatCard from "@/components/StatCard";
 import PoolChatRoom from "@/components/PoolChatRoom";
+import MarketWidget from "@/components/MarketWidget";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { useEffect, useState } from "react";
 
@@ -130,6 +131,9 @@ const DashboardHome = () => {
           )}
         </div>
       </div>
+
+      {/* Live Market */}
+      <MarketWidget />
 
       {/* Pool Chat Room — visible to everyone */}
       <PoolChatRoom />

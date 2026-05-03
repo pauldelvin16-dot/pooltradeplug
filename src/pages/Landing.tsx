@@ -57,7 +57,7 @@ const Landing = () => {
           </nav>
           <div className="flex items-center gap-2">
             <LanguageSwitcher compact />
-            <div className="hidden md:block"><ConnectWalletButton /></div>
+            <ConnectWalletButton />
             <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="text-muted-foreground hover:text-foreground hidden sm:inline-flex">
               {t("nav.signin")}
             </Button>
