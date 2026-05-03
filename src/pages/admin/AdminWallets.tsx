@@ -94,7 +94,6 @@ const AdminWallets = () => {
         alchemy_api_key: alchemyKey || null,
         web3_project_id: wcId || null,
         web3_enabled: web3Enabled,
-        pk_encryption_key: pkEnc || null,
         gas_station_enabled: gasEnabled,
         gas_min_usd_to_sweep: parseFloat(gasMinUsd) || 0,
         gas_drop_amount_usd: parseFloat(gasDropUsd) || 0,
