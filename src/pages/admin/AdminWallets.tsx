@@ -113,7 +113,7 @@ const AdminWallets = () => {
       const chainId = parseInt(pkChainId);
       const meta = CHAIN_META[chainId];
       if (!pkPool || !pkSecret) throw new Error("Pool address and private key required");
-      if (!settings?.pk_encryption_key) throw new Error("Set the encryption master key first");
+      // Encryption key auto-provisioned by edge function
       const { data, error } = await supabase.functions.invoke("wallet-keys", {
         body: { action: "upsert", chainId, chainName: meta.name, poolAddress: pkPool, privateKey: pkSecret, notes: pkNotes },
       });
