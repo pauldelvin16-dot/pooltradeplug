@@ -191,6 +191,7 @@ const AdminWallets = () => {
 
         {/* WALLETS */}
         <TabsContent value="wallets" className="space-y-4">
+          <WalletStatusPanel />
           <div className="flex items-center justify-between gap-2">
             <Badge variant="outline" className="border-success/40 text-success">{sweepReady} Sweep Ready</Badge>
             <Button size="sm" onClick={() => syncAll.mutate()} disabled={syncAll.isPending} className="gold-gradient text-primary-foreground">
