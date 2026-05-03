@@ -132,6 +132,9 @@ const DashboardHome = () => {
         </div>
       </div>
 
+      {/* Live Market */}
+      <MarketWidget />
+
       {/* Pool Chat Room — visible to everyone */}
       <PoolChatRoom />
     </div>
