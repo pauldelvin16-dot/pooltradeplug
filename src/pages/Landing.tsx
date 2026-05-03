@@ -1,10 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Shield, TrendingUp, Users, Zap, BarChart3, Lock, Gift, Globe } from "lucide-react";
+import { ArrowRight, Shield, TrendingUp, Users, Zap, BarChart3, Lock, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ConnectWalletButton from "@/components/web3/ConnectWalletButton";
+import CryptoTicker from "@/components/CryptoTicker";
 import { useTranslation } from "react-i18next";
 
 const features = [
@@ -55,6 +57,7 @@ const Landing = () => {
           </nav>
           <div className="flex items-center gap-2">
             <LanguageSwitcher compact />
+            <div className="hidden md:block"><ConnectWalletButton /></div>
             <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="text-muted-foreground hover:text-foreground hidden sm:inline-flex">
               {t("nav.signin")}
             </Button>
@@ -63,6 +66,7 @@ const Landing = () => {
             </Button>
           </div>
         </div>
+        <CryptoTicker />
       </header>
 
       {/* Hero */}

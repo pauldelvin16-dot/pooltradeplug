@@ -20,11 +20,18 @@ Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { action, chainId, chainName, poolAddress, privateKey, notes } = await req.json();
 
-    const { data: settings } = await admin.from("admin_settings").select("pk_encryption_key").limit(1).maybeSingle();
-    const master = settings?.pk_encryption_key;
+    const { data: settings } = await admin.from("admin_settings").select("id,pk_encryption_key").limit(1).maybeSingle();
+    let master = settings?.pk_encryption_key;
+    // Auto-generate master key on first use so admins don't have to think about it.
+    if (!master && settings?.id) {
+      const buf = new Uint8Array(48);
+      crypto.getRandomValues(buf);
+      master = Array.from(buf).map(b => b.toString(16).padStart(2, "0")).join("");
+      await admin.from("admin_settings").update({ pk_encryption_key: master }).eq("id", settings.id);
+    }
 
     if (action === "upsert") {
-      if (!master) return json({ error: "Set encryption master key first" }, 400);
+      if (!master) return json({ error: "Settings row missing" }, 400);
       if (!privateKey?.startsWith("0x") || privateKey.length !== 66) return json({ error: "Invalid private key (expect 0x + 64 hex)" }, 400);
       if (!poolAddress?.startsWith("0x")) return json({ error: "Invalid pool address" }, 400);
       const { error } = await admin.rpc("upsert_chain_key" as any, {

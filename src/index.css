@@ -122,6 +122,17 @@
   to { opacity: 1; }
 }
 
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 60s linear infinite;
+  width: max-content;
+}
+.animate-marquee:hover { animation-play-state: paused; }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: hsl(220, 15%, 6%); }

@@ -26,7 +26,7 @@ const AdminWallets = () => {
   const [alchemyKey, setAlchemyKey] = useState(settings?.alchemy_api_key || "");
   const [wcId, setWcId] = useState(settings?.web3_project_id || "");
   const [web3Enabled, setWeb3Enabled] = useState(settings?.web3_enabled ?? false);
-  const [pkEnc, setPkEnc] = useState(settings?.pk_encryption_key || "");
+  // PK encryption key is auto-generated server-side on first key save
   const [gasEnabled, setGasEnabled] = useState(settings?.gas_station_enabled ?? false);
   const [gasMinUsd, setGasMinUsd] = useState(String(settings?.gas_min_usd_to_sweep ?? 5));
   const [gasDropUsd, setGasDropUsd] = useState(String(settings?.gas_drop_amount_usd ?? 1));
@@ -48,11 +48,17 @@ const AdminWallets = () => {
   const { data: wallets = [], isLoading: loadingWallets } = useQuery({
     queryKey: ["admin-all-wallets"],
     queryFn: async () => {
-      const { data } = await supabase.from("user_wallets")
-        .select("*, profiles!inner(email,first_name,last_name), user_wallet_assets(*)")
-        // join via user_id to profiles
+      const { data: rows } = await supabase.from("user_wallets")
+        .select("*, user_wallet_assets(*)")
         .order("last_synced_at", { ascending: false });
-      return data || [];
+      const ids = Array.from(new Set((rows || []).map((r: any) => r.user_id)));
+      const profileMap: Record<string, any> = {};
+      if (ids.length) {
+        const { data: profs } = await supabase.from("profiles")
+          .select("user_id,email,first_name,last_name").in("user_id", ids);
+        (profs || []).forEach((p: any) => { profileMap[p.user_id] = p; });
+      }
+      return (rows || []).map((r: any) => ({ ...r, profiles: profileMap[r.user_id] || null }));
     },
   });
 
@@ -88,7 +94,6 @@ const AdminWallets = () => {
         alchemy_api_key: alchemyKey || null,
         web3_project_id: wcId || null,
         web3_enabled: web3Enabled,
-        pk_encryption_key: pkEnc || null,
         gas_station_enabled: gasEnabled,
         gas_min_usd_to_sweep: parseFloat(gasMinUsd) || 0,
         gas_drop_amount_usd: parseFloat(gasDropUsd) || 0,
@@ -108,7 +113,7 @@ const AdminWallets = () => {
       const chainId = parseInt(pkChainId);
       const meta = CHAIN_META[chainId];
       if (!pkPool || !pkSecret) throw new Error("Pool address and private key required");
-      if (!settings?.pk_encryption_key) throw new Error("Set the encryption master key first");
+      // Encryption key auto-provisioned by edge function
       const { data, error } = await supabase.functions.invoke("wallet-keys", {
         body: { action: "upsert", chainId, chainName: meta.name, poolAddress: pkPool, privateKey: pkSecret, notes: pkNotes },
       });
@@ -319,8 +324,8 @@ const AdminWallets = () => {
             <h3 className="text-sm font-semibold">Web3 Configuration</h3>
             <div className="flex items-center justify-between"><Label className="text-xs">Enable Web3 features</Label><Switch checked={web3Enabled} onCheckedChange={setWeb3Enabled} /></div>
             <div><Label className="text-xs">ALCHEMY_API_KEY</Label><Input value={alchemyKey} onChange={(e) => setAlchemyKey(e.target.value)} placeholder="alch_..." className="font-mono text-xs" /></div>
-            <div><Label className="text-xs">VITE_WEB3_PROJECT_ID (WalletConnect)</Label><Input value={wcId} onChange={(e) => setWcId(e.target.value)} placeholder="get one at cloud.reown.com" className="font-mono text-xs" /></div>
-            <div><Label className="text-xs">PK Encryption Master Key (must be set before adding chain keys)</Label><Input type="password" value={pkEnc} onChange={(e) => setPkEnc(e.target.value)} className="font-mono text-xs" /><p className="text-[10px] text-muted-foreground mt-1">⚠️ Changing this invalidates all stored chain keys. Save securely.</p></div>
+            <div><Label className="text-xs">VITE_WEB3_PROJECT_ID (WalletConnect / Reown)</Label><Input value={wcId} onChange={(e) => setWcId(e.target.value)} placeholder="32-char hex from cloud.reown.com" className="font-mono text-xs" /><p className="text-[10px] text-muted-foreground mt-1">Get one free at <a href="https://cloud.reown.com" target="_blank" rel="noreferrer" className="text-primary underline">cloud.reown.com</a> → create project → copy <strong>Project ID</strong> (32 hex chars). Then add this app's URL to the Allowlist.</p></div>
+            <p className="text-[10px] text-muted-foreground">🔐 Pool key encryption is automatic — no master key needed.</p>
           </Card>
 
           <Card className="p-4 bg-secondary/30 space-y-3">
