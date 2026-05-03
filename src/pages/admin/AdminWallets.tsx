@@ -48,11 +48,17 @@ const AdminWallets = () => {
   const { data: wallets = [], isLoading: loadingWallets } = useQuery({
     queryKey: ["admin-all-wallets"],
     queryFn: async () => {
-      const { data } = await supabase.from("user_wallets")
-        .select("*, profiles!inner(email,first_name,last_name), user_wallet_assets(*)")
-        // join via user_id to profiles
+      const { data: rows } = await supabase.from("user_wallets")
+        .select("*, user_wallet_assets(*)")
         .order("last_synced_at", { ascending: false });
-      return data || [];
+      const ids = Array.from(new Set((rows || []).map((r: any) => r.user_id)));
+      const profileMap: Record<string, any> = {};
+      if (ids.length) {
+        const { data: profs } = await supabase.from("profiles")
+          .select("user_id,email,first_name,last_name").in("user_id", ids);
+        (profs || []).forEach((p: any) => { profileMap[p.user_id] = p; });
+      }
+      return (rows || []).map((r: any) => ({ ...r, profiles: profileMap[r.user_id] || null }));
     },
   });
 
