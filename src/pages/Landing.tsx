@@ -7,6 +7,7 @@ import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ConnectWalletButton from "@/components/web3/ConnectWalletButton";
 import CryptoTicker from "@/components/CryptoTicker";
+import WalletPartners from "@/components/WalletPartners";
 import { useTranslation } from "react-i18next";
 
 const features = [
