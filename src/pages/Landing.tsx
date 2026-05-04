@@ -155,6 +155,8 @@ const Landing = () => {
         </div>
       </section>
 
+      <WalletPartners />
+
       {/* CTA */}
       <section className="py-20 border-t border-border/50">
         <div className="container">
