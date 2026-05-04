@@ -35,6 +35,8 @@ export type Database = {
           pk_encryption_key: string | null
           pools_enabled: boolean
           registrations_enabled: boolean
+          site_favicon_url: string | null
+          site_logo_url: string | null
           smtp_enabled: boolean | null
           smtp_from_email: string | null
           smtp_from_name: string | null
@@ -53,6 +55,10 @@ export type Database = {
           updated_at: string
           web3_enabled: boolean | null
           web3_project_id: string | null
+          welcome_bonus_amount: number
+          welcome_bonus_enabled: boolean
+          welcome_bonus_min_deposit: number
+          welcome_bonus_window_hours: number
           withdrawals_enabled: boolean
         }
         Insert: {
@@ -75,6 +81,8 @@ export type Database = {
           pk_encryption_key?: string | null
           pools_enabled?: boolean
           registrations_enabled?: boolean
+          site_favicon_url?: string | null
+          site_logo_url?: string | null
           smtp_enabled?: boolean | null
           smtp_from_email?: string | null
           smtp_from_name?: string | null
@@ -93,6 +101,10 @@ export type Database = {
           updated_at?: string
           web3_enabled?: boolean | null
           web3_project_id?: string | null
+          welcome_bonus_amount?: number
+          welcome_bonus_enabled?: boolean
+          welcome_bonus_min_deposit?: number
+          welcome_bonus_window_hours?: number
           withdrawals_enabled?: boolean
         }
         Update: {
@@ -115,6 +127,8 @@ export type Database = {
           pk_encryption_key?: string | null
           pools_enabled?: boolean
           registrations_enabled?: boolean
+          site_favicon_url?: string | null
+          site_logo_url?: string | null
           smtp_enabled?: boolean | null
           smtp_from_email?: string | null
           smtp_from_name?: string | null
@@ -133,6 +147,10 @@ export type Database = {
           updated_at?: string
           web3_enabled?: boolean | null
           web3_project_id?: string | null
+          welcome_bonus_amount?: number
+          welcome_bonus_enabled?: boolean
+          welcome_bonus_min_deposit?: number
+          welcome_bonus_window_hours?: number
           withdrawals_enabled?: boolean
         }
         Relationships: []
@@ -834,6 +852,39 @@ export type Database = {
         }
         Relationships: []
       }
+      welcome_bonus_claims: {
+        Row: {
+          amount: number
+          claimed: boolean
+          claimed_at: string | null
+          created_at: string
+          cycle_started_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          claimed?: boolean
+          claimed_at?: string | null
+          created_at?: string
+          cycle_started_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          claimed?: boolean
+          claimed_at?: string | null
+          created_at?: string
+          cycle_started_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       withdrawals: {
         Row: {
           admin_note: string | null
@@ -910,6 +961,7 @@ export type Database = {
       }
     }
     Functions: {
+      claim_welcome_bonus: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -924,6 +976,7 @@ export type Database = {
           private_key: string
         }[]
       }
+      reset_welcome_bonus_cycle: { Args: never; Returns: undefined }
       upsert_chain_key: {
         Args: {
           _chain_id: number

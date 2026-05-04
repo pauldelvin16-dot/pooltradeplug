@@ -13,10 +13,14 @@ const ALCHEMY_NETS: Record<number, string> = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: settings } = await admin.from("admin_settings").select("alchemy_api_key").limit(1).maybeSingle();
+    const url = Deno.env.get("SUPABASE_URL");
+    const sk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !sk) return json({ ok: false, error: "Server misconfigured: missing SUPABASE env vars" }, 200);
+    const admin = createClient(url, sk);
+    const { data: settings, error: setErr } = await admin.from("admin_settings").select("alchemy_api_key").limit(1).maybeSingle();
+    if (setErr) return json({ ok: false, error: `Settings read failed: ${setErr.message}` }, 200);
     const key = settings?.alchemy_api_key;
-    if (!key) return json({ error: "Alchemy API key not configured" }, 400);
+    if (!key) return json({ ok: false, error: "Alchemy API key not configured in Admin → Web3 settings" }, 200);
 
     const { address, chainId, walletId, syncAll } = await req.json().catch(() => ({}));
 
@@ -82,7 +86,7 @@ Deno.serve(async (req) => {
       } catch (e) { console.error("sync err", t.address, e); }
     }
     return json({ ok: true, synced });
-  } catch (e: any) { return json({ error: e.message }, 500); }
+  } catch (e: any) { console.error("wallet-balances fatal", e); return json({ ok: false, error: e?.message || String(e) }, 200); }
 });
 
 function chainSymbol(id: number) {

@@ -35,6 +35,7 @@ import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import RiskPage from "./pages/RiskPage";
 import NotFound from "./pages/NotFound";
+import SiteBranding from "@/components/SiteBranding";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <SiteBranding />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />

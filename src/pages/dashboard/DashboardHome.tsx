@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import StatCard from "@/components/StatCard";
 import PoolChatRoom from "@/components/PoolChatRoom";
 import MarketWidget from "@/components/MarketWidget";
+import WelcomeBonusCard from "@/components/WelcomeBonusCard";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { useEffect, useState } from "react";
 
@@ -86,6 +87,8 @@ const DashboardHome = () => {
         <StatCard icon={BarChart3} title="MT5 Accounts" value={String(mt5Accounts.length)} change={`${mt5Accounts.filter((a: any) => a.status === "active").length} active`} changeType="neutral" />
         <StatCard icon={Users} title="Active Pools" value={String(poolParticipations.length)} change="Joined pools" changeType="neutral" />
       </div>
+
+      <WelcomeBonusCard />
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* BTC Market Chart */}

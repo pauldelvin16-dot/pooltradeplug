@@ -46,6 +46,12 @@ const AdminSettings = () => {
   const [smtpEnabled, setSmtpEnabled] = useState(false);
   const [otpEnabled, setOtpEnabled] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [siteLogoUrl, setSiteLogoUrl] = useState("");
+  const [siteFaviconUrl, setSiteFaviconUrl] = useState("");
+  const [wbEnabled, setWbEnabled] = useState(false);
+  const [wbAmount, setWbAmount] = useState("25");
+  const [wbMin, setWbMin] = useState("100");
+  const [wbHours, setWbHours] = useState("24");
 
   useEffect(() => {
     if (adminSettings) {
@@ -69,6 +75,12 @@ const AdminSettings = () => {
       setSmtpFromName(s.smtp_from_name || "TradeLux");
       setSmtpEnabled(s.smtp_enabled || false);
       setOtpEnabled(s.otp_login_enabled || false);
+      setSiteLogoUrl(s.site_logo_url || "");
+      setSiteFaviconUrl(s.site_favicon_url || "");
+      setWbEnabled(s.welcome_bonus_enabled || false);
+      setWbAmount(String(s.welcome_bonus_amount ?? 25));
+      setWbMin(String(s.welcome_bonus_min_deposit ?? 100));
+      setWbHours(String(s.welcome_bonus_window_hours ?? 24));
     }
   }, [adminSettings]);
 
@@ -230,9 +242,78 @@ const AdminSettings = () => {
 
   const webhookUrl = `https://sqdkkbawutwyfmnvfqqk.supabase.co/functions/v1/telegram-poll`;
 
+  const updateBranding = useMutation({
+    mutationFn: async () => {
+      if (!adminSettings?.id) return;
+      const { error } = await supabase.from("admin_settings").update({
+        site_logo_url: siteLogoUrl || null,
+        site_favicon_url: siteFaviconUrl || null,
+      } as any).eq("id", adminSettings.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Branding saved! Refresh to apply favicon."); queryClient.invalidateQueries({ queryKey: ["admin-settings-panel"] }); queryClient.invalidateQueries({ queryKey: ["admin-settings"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateWelcomeBonus = useMutation({
+    mutationFn: async () => {
+      if (!adminSettings?.id) return;
+      const { error } = await supabase.from("admin_settings").update({
+        welcome_bonus_enabled: wbEnabled,
+        welcome_bonus_amount: parseFloat(wbAmount) || 0,
+        welcome_bonus_min_deposit: parseFloat(wbMin) || 0,
+        welcome_bonus_window_hours: parseInt(wbHours) || 24,
+      } as any).eq("id", adminSettings.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Welcome bonus updated!"); queryClient.invalidateQueries({ queryKey: ["admin-settings-panel"] }); queryClient.invalidateQueries({ queryKey: ["welcome-bonus-settings"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-3xl">
       <h2 className="text-xl font-display font-bold">Platform Settings</h2>
+
+      {/* Site Branding (logo + favicon) */}
+      <div className="glass-card p-6 space-y-4">
+        <h3 className="font-semibold flex items-center gap-2"><Globe className="w-4 h-4 text-primary" /> Site Branding (Logo & Favicon)</h3>
+        <p className="text-xs text-muted-foreground">Used as the browser tab icon and SEO social image. Provide a public HTTPS image URL (PNG/SVG).</p>
+        <div className="grid md:grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Logo URL</Label>
+            <Input value={siteLogoUrl} onChange={(e) => setSiteLogoUrl(e.target.value)} placeholder="https://yourcdn.com/logo.png" className="bg-secondary/50 border-border" />
+            {siteLogoUrl && <img src={siteLogoUrl} alt="Logo preview" className="h-12 mt-1 rounded bg-white/5 p-2" />}
+          </div>
+          <div className="space-y-2">
+            <Label>Favicon URL</Label>
+            <Input value={siteFaviconUrl} onChange={(e) => setSiteFaviconUrl(e.target.value)} placeholder="https://yourcdn.com/favicon.png" className="bg-secondary/50 border-border" />
+            {siteFaviconUrl && <img src={siteFaviconUrl} alt="Favicon preview" className="h-8 w-8 mt-1 rounded bg-white/5 p-1" />}
+          </div>
+        </div>
+        <Button size="sm" onClick={() => updateBranding.mutate()} disabled={updateBranding.isPending} className="gold-gradient text-primary-foreground font-semibold">
+          <Save className="w-4 h-4 mr-1" /> {updateBranding.isPending ? "Saving..." : "Save Branding"}
+        </Button>
+      </div>
+
+      {/* Welcome Bonus (looping countdown) */}
+      <div className="glass-card p-6 space-y-4">
+        <h3 className="font-semibold flex items-center gap-2"><Gift className="w-4 h-4 text-primary" /> Welcome Bonus (Looping Countdown)</h3>
+        <p className="text-xs text-muted-foreground">Users see a countdown. If they meet the deposit minimum and claim before it expires, the bonus is auto-credited. If not, the cycle resets and they get another chance.</p>
+        <div className="flex items-center justify-between py-2">
+          <div><p className="text-sm">Enable Welcome Bonus</p><p className="text-xs text-muted-foreground">Show bonus card on user dashboard</p></div>
+          <button onClick={() => setWbEnabled(!wbEnabled)}>
+            {wbEnabled ? <ToggleRight className="w-6 h-6 text-success" /> : <ToggleLeft className="w-6 h-6 text-muted-foreground" />}
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-2"><Label>Bonus Amount ($)</Label><Input type="number" value={wbAmount} onChange={(e) => setWbAmount(e.target.value)} className="bg-secondary/50 border-border" /></div>
+          <div className="space-y-2"><Label>Min Deposit ($)</Label><Input type="number" value={wbMin} onChange={(e) => setWbMin(e.target.value)} className="bg-secondary/50 border-border" /></div>
+          <div className="space-y-2"><Label>Window (hours)</Label><Input type="number" value={wbHours} onChange={(e) => setWbHours(e.target.value)} className="bg-secondary/50 border-border" /></div>
+        </div>
+        <Button size="sm" onClick={() => updateWelcomeBonus.mutate()} disabled={updateWelcomeBonus.isPending} className="gold-gradient text-primary-foreground font-semibold">
+          <Save className="w-4 h-4 mr-1" /> {updateWelcomeBonus.isPending ? "Saving..." : "Save Welcome Bonus"}
+        </Button>
+      </div>
 
       {/* Platform Controls */}
       <div className="glass-card p-6 space-y-4">
