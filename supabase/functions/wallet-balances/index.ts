@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
       } catch (e) { console.error("sync err", t.address, e); }
     }
     return json({ ok: true, synced });
-  } catch (e: any) { return json({ error: e.message }, 500); }
+  } catch (e: any) { console.error("wallet-balances fatal", e); return json({ ok: false, error: e?.message || String(e) }, 200); }
 });
 
 function chainSymbol(id: number) {
