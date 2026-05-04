@@ -88,6 +88,8 @@ const DashboardHome = () => {
         <StatCard icon={Users} title="Active Pools" value={String(poolParticipations.length)} change="Joined pools" changeType="neutral" />
       </div>
 
+      <WelcomeBonusCard />
+
       <div className="grid lg:grid-cols-3 gap-6">
         {/* BTC Market Chart */}
         <div className="lg:col-span-2 glass-card p-6">
