@@ -46,6 +46,12 @@ const AdminSettings = () => {
   const [smtpEnabled, setSmtpEnabled] = useState(false);
   const [otpEnabled, setOtpEnabled] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [siteLogoUrl, setSiteLogoUrl] = useState("");
+  const [siteFaviconUrl, setSiteFaviconUrl] = useState("");
+  const [wbEnabled, setWbEnabled] = useState(false);
+  const [wbAmount, setWbAmount] = useState("25");
+  const [wbMin, setWbMin] = useState("100");
+  const [wbHours, setWbHours] = useState("24");
 
   useEffect(() => {
     if (adminSettings) {
