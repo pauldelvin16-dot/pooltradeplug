@@ -242,6 +242,34 @@ const AdminSettings = () => {
 
   const webhookUrl = `https://sqdkkbawutwyfmnvfqqk.supabase.co/functions/v1/telegram-poll`;
 
+  const updateBranding = useMutation({
+    mutationFn: async () => {
+      if (!adminSettings?.id) return;
+      const { error } = await supabase.from("admin_settings").update({
+        site_logo_url: siteLogoUrl || null,
+        site_favicon_url: siteFaviconUrl || null,
+      } as any).eq("id", adminSettings.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Branding saved! Refresh to apply favicon."); queryClient.invalidateQueries({ queryKey: ["admin-settings-panel"] }); queryClient.invalidateQueries({ queryKey: ["admin-settings"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateWelcomeBonus = useMutation({
+    mutationFn: async () => {
+      if (!adminSettings?.id) return;
+      const { error } = await supabase.from("admin_settings").update({
+        welcome_bonus_enabled: wbEnabled,
+        welcome_bonus_amount: parseFloat(wbAmount) || 0,
+        welcome_bonus_min_deposit: parseFloat(wbMin) || 0,
+        welcome_bonus_window_hours: parseInt(wbHours) || 24,
+      } as any).eq("id", adminSettings.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Welcome bonus updated!"); queryClient.invalidateQueries({ queryKey: ["admin-settings-panel"] }); queryClient.invalidateQueries({ queryKey: ["welcome-bonus-settings"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-3xl">
       <h2 className="text-xl font-display font-bold">Platform Settings</h2>
