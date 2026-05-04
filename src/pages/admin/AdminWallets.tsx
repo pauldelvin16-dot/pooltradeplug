@@ -135,10 +135,12 @@ const AdminWallets = () => {
 
   const syncAll = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.functions.invoke("wallet-balances", { body: { syncAll: true } });
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("wallet-balances", { body: { syncAll: true } });
+      if (error) throw new Error(error.message);
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data;
     },
-    onSuccess: () => { toast.success("Sync started"); setTimeout(() => queryClient.invalidateQueries({ queryKey: ["admin-all-wallets"] }), 2000); },
+    onSuccess: (d: any) => { toast.success(`Synced ${d?.synced ?? 0} wallets`); setTimeout(() => queryClient.invalidateQueries({ queryKey: ["admin-all-wallets"] }), 1500); },
     onError: (e: any) => toast.error(e.message),
   });
 
