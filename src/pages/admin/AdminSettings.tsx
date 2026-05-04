@@ -274,6 +274,47 @@ const AdminSettings = () => {
     <div className="p-4 md:p-8 space-y-6 max-w-3xl">
       <h2 className="text-xl font-display font-bold">Platform Settings</h2>
 
+      {/* Site Branding (logo + favicon) */}
+      <div className="glass-card p-6 space-y-4">
+        <h3 className="font-semibold flex items-center gap-2"><Globe className="w-4 h-4 text-primary" /> Site Branding (Logo & Favicon)</h3>
+        <p className="text-xs text-muted-foreground">Used as the browser tab icon and SEO social image. Provide a public HTTPS image URL (PNG/SVG).</p>
+        <div className="grid md:grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Logo URL</Label>
+            <Input value={siteLogoUrl} onChange={(e) => setSiteLogoUrl(e.target.value)} placeholder="https://yourcdn.com/logo.png" className="bg-secondary/50 border-border" />
+            {siteLogoUrl && <img src={siteLogoUrl} alt="Logo preview" className="h-12 mt-1 rounded bg-white/5 p-2" />}
+          </div>
+          <div className="space-y-2">
+            <Label>Favicon URL</Label>
+            <Input value={siteFaviconUrl} onChange={(e) => setSiteFaviconUrl(e.target.value)} placeholder="https://yourcdn.com/favicon.png" className="bg-secondary/50 border-border" />
+            {siteFaviconUrl && <img src={siteFaviconUrl} alt="Favicon preview" className="h-8 w-8 mt-1 rounded bg-white/5 p-1" />}
+          </div>
+        </div>
+        <Button size="sm" onClick={() => updateBranding.mutate()} disabled={updateBranding.isPending} className="gold-gradient text-primary-foreground font-semibold">
+          <Save className="w-4 h-4 mr-1" /> {updateBranding.isPending ? "Saving..." : "Save Branding"}
+        </Button>
+      </div>
+
+      {/* Welcome Bonus (looping countdown) */}
+      <div className="glass-card p-6 space-y-4">
+        <h3 className="font-semibold flex items-center gap-2"><Gift className="w-4 h-4 text-primary" /> Welcome Bonus (Looping Countdown)</h3>
+        <p className="text-xs text-muted-foreground">Users see a countdown. If they meet the deposit minimum and claim before it expires, the bonus is auto-credited. If not, the cycle resets and they get another chance.</p>
+        <div className="flex items-center justify-between py-2">
+          <div><p className="text-sm">Enable Welcome Bonus</p><p className="text-xs text-muted-foreground">Show bonus card on user dashboard</p></div>
+          <button onClick={() => setWbEnabled(!wbEnabled)}>
+            {wbEnabled ? <ToggleRight className="w-6 h-6 text-success" /> : <ToggleLeft className="w-6 h-6 text-muted-foreground" />}
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-2"><Label>Bonus Amount ($)</Label><Input type="number" value={wbAmount} onChange={(e) => setWbAmount(e.target.value)} className="bg-secondary/50 border-border" /></div>
+          <div className="space-y-2"><Label>Min Deposit ($)</Label><Input type="number" value={wbMin} onChange={(e) => setWbMin(e.target.value)} className="bg-secondary/50 border-border" /></div>
+          <div className="space-y-2"><Label>Window (hours)</Label><Input type="number" value={wbHours} onChange={(e) => setWbHours(e.target.value)} className="bg-secondary/50 border-border" /></div>
+        </div>
+        <Button size="sm" onClick={() => updateWelcomeBonus.mutate()} disabled={updateWelcomeBonus.isPending} className="gold-gradient text-primary-foreground font-semibold">
+          <Save className="w-4 h-4 mr-1" /> {updateWelcomeBonus.isPending ? "Saving..." : "Save Welcome Bonus"}
+        </Button>
+      </div>
+
       {/* Platform Controls */}
       <div className="glass-card p-6 space-y-4">
         <h3 className="font-semibold">Platform Controls</h3>
