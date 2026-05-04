@@ -75,6 +75,12 @@ const AdminSettings = () => {
       setSmtpFromName(s.smtp_from_name || "TradeLux");
       setSmtpEnabled(s.smtp_enabled || false);
       setOtpEnabled(s.otp_login_enabled || false);
+      setSiteLogoUrl(s.site_logo_url || "");
+      setSiteFaviconUrl(s.site_favicon_url || "");
+      setWbEnabled(s.welcome_bonus_enabled || false);
+      setWbAmount(String(s.welcome_bonus_amount ?? 25));
+      setWbMin(String(s.welcome_bonus_min_deposit ?? 100));
+      setWbHours(String(s.welcome_bonus_window_hours ?? 24));
     }
   }, [adminSettings]);
 
