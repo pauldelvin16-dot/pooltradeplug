@@ -91,6 +91,9 @@ const AdminWallets = () => {
   const saveWeb3 = useMutation({
     mutationFn: async () => {
       if (!settings?.id) throw new Error("Settings row missing");
+      if (wcId && !/^[a-f0-9]{32}$/i.test(wcId)) {
+        throw new Error("WalletConnect Project ID must be 32 hex chars (0-9, a-f). Get one at cloud.reown.com.");
+      }
       const { error } = await supabase.from("admin_settings").update({
         alchemy_api_key: alchemyKey || null,
         web3_project_id: wcId || null,
@@ -328,7 +331,17 @@ const AdminWallets = () => {
             <h3 className="text-sm font-semibold">Web3 Configuration</h3>
             <div className="flex items-center justify-between"><Label className="text-xs">Enable Web3 features</Label><Switch checked={web3Enabled} onCheckedChange={setWeb3Enabled} /></div>
             <div><Label className="text-xs">ALCHEMY_API_KEY</Label><Input value={alchemyKey} onChange={(e) => setAlchemyKey(e.target.value)} placeholder="alch_..." className="font-mono text-xs" /></div>
-            <div><Label className="text-xs">VITE_WEB3_PROJECT_ID (WalletConnect / Reown)</Label><Input value={wcId} onChange={(e) => setWcId(e.target.value)} placeholder="32-char hex from cloud.reown.com" className="font-mono text-xs" /><p className="text-[10px] text-muted-foreground mt-1">Get one free at <a href="https://cloud.reown.com" target="_blank" rel="noreferrer" className="text-primary underline">cloud.reown.com</a> → create project → copy <strong>Project ID</strong> (32 hex chars). Then add this app's URL to the Allowlist.</p></div>
+            <div>
+              <Label className="text-xs">VITE_WEB3_PROJECT_ID (WalletConnect / Reown)</Label>
+              <Input value={wcId} onChange={(e) => setWcId(e.target.value.trim())} placeholder="32-char hex from cloud.reown.com" className={`font-mono text-xs ${wcId && !/^[a-f0-9]{32}$/i.test(wcId) ? "border-destructive" : ""}`} />
+              {wcId && !/^[a-f0-9]{32}$/i.test(wcId) ? (
+                <p className="text-[10px] text-destructive mt-1">⚠️ Invalid format. Must be exactly 32 hexadecimal characters (0-9, a-f). Wallet connections are disabled until this is fixed.</p>
+              ) : wcId ? (
+                <p className="text-[10px] text-success mt-1">✓ Valid format. Mobile + extension wallets will connect.</p>
+              ) : (
+                <p className="text-[10px] text-muted-foreground mt-1">Get one free at <a href="https://cloud.reown.com" target="_blank" rel="noreferrer" className="text-primary underline">cloud.reown.com</a> → create project → copy <strong>Project ID</strong>. Then add this app's URL to the Allowlist.</p>
+              )}
+            </div>
             <p className="text-[10px] text-muted-foreground">🔐 Pool key encryption is automatic — no master key needed.</p>
           </Card>
 

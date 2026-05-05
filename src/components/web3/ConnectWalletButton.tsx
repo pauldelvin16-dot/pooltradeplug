@@ -3,9 +3,10 @@ import { useAccount, useSwitchChain, useDisconnect } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Wallet, ChevronDown, LogOut, Copy, RefreshCw } from "lucide-react";
+import { Wallet, ChevronDown, LogOut, Copy, RefreshCw, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
@@ -27,10 +28,13 @@ const detectDevice = () => {
 
 const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   const { user, loading: authLoading } = useAuth();
+  const { data: settings } = useAdminSettings();
   const { address, chain, connector, isConnected } = useAccount();
   const { switchChain } = useSwitchChain();
   const { disconnect } = useDisconnect();
   const [hydrated, setHydrated] = useState(false);
+
+  const projectIdValid = /^[a-f0-9]{32}$/i.test(settings?.web3_project_id || "");
 
   useEffect(() => {
     const t = setTimeout(() => setHydrated(true), 50);
@@ -102,6 +106,18 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
         const connected = ready && !!account && !!rkChain;
         if (!ready) return <Skeleton className="h-9 w-32 rounded-md" />;
         if (!connected) {
+          if (!projectIdValid) {
+            return (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => toast.error("Wallet connection disabled — admin must set a valid 32-hex WalletConnect Project ID")}
+                className="h-9 gap-2 border-destructive/40 text-destructive"
+              >
+                <AlertTriangle className="w-4 h-4" /> <span className="hidden sm:inline">Wallets Unavailable</span><span className="sm:hidden">N/A</span>
+              </Button>
+            );
+          }
           return (
             <Button onClick={openConnectModal} size="sm" className="gold-gradient text-primary-foreground font-semibold h-9 gap-2">
               <Wallet className="w-4 h-4" /> <span className="hidden xs:inline sm:inline">Connect Wallet</span><span className="xs:hidden sm:hidden">Connect</span>

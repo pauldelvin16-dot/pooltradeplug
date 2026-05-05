@@ -1,8 +1,8 @@
 // Auth helper actions — public, dynamic-origin, privacy-safe.
 // Endpoints (POST):
-//   { action: 'forgot_password', email, origin? }     → always returns ok (silent for unknown)
-//   { action: 'request_otp', email }                  → always returns ok; sends only if user exists
-//   { action: 'verify_otp', email, code }             → returns { ok, session? }
+//   { action: 'forgot_password', email, origin? }     → silent ok; sends reset email if user exists
+//   { action: 'request_otp', email, origin? }         → silent ok; sends 6-digit code if user exists
+//   { action: 'verify_otp', email, code, origin? }    → { ok, action_link? } — magiclink to consume on client
 //   { action: 'send_welcome', email, name }           → fired post-signup
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -29,23 +29,25 @@ Deno.serve(async (req) => {
   const origin = body.origin || req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '') || '';
   const callEmail = async (template: string, to: string, data: any) => {
     try {
-      await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      const r = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, Origin: origin },
         body: JSON.stringify({ to, template, data, origin }),
       });
-    } catch (e) { console.error('email send failed', e); }
+      const j = await r.json().catch(() => ({}));
+      if (!j?.ok) console.error('send-email returned non-ok', j);
+      return j;
+    } catch (e) { console.error('email send failed', e); return null; }
   };
 
   if (body.action === 'forgot_password') {
     const email = String(body.email || '').toLowerCase().trim();
     if (!email.includes('@')) {
-      // Always respond ok — never reveal if email exists
       return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     const { data: profile } = await supabase.from('profiles').select('user_id, first_name, email').eq('email', email).maybeSingle();
     if (profile) {
-      const redirectTo = `${origin}/login`;
+      const redirectTo = `${origin}/reset-password`;
       const { data: linkData } = await supabase.auth.admin.generateLink({
         type: 'recovery',
         email,
@@ -88,7 +90,19 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: false, error: 'Invalid or expired code' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     await supabase.from('otp_codes').update({ used: true }).eq('id', row.id);
-    return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+    // Issue a magiclink so the client can consume it and create a real session — no password needed.
+    const redirectTo = `${origin}/dashboard`;
+    const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+      options: { redirectTo },
+    });
+    if (linkErr || !linkData) {
+      return new Response(JSON.stringify({ ok: false, error: linkErr?.message || 'Could not issue session' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    const action_link = (linkData as any)?.properties?.action_link;
+    return new Response(JSON.stringify({ ok: true, action_link }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   if (body.action === 'send_welcome') {
