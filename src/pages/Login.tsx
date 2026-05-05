@@ -1,13 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, ArrowLeft, Bot, Mail, KeyRound } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, Bot, Mail, KeyRound, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+const RESEND_SECONDS = 45;
 
 const Login = () => {
   const navigate = useNavigate();
@@ -21,10 +23,13 @@ const Login = () => {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSending, setForgotSending] = useState(false);
 
-  // OTP login flow
-  const [otpRequired, setOtpRequired] = useState(false);
+  // OTP login flow (alternate to password)
+  const [useOtp, setUseOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [otpSending, setOtpSending] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+  const timerRef = useRef<number | null>(null);
 
   const { data: settings } = useQuery({
     queryKey: ["admin-settings-login"],
@@ -37,34 +42,59 @@ const Login = () => {
   const otpEnabled = (settings as any)?.otp_login_enabled;
   const telegramLink = (settings as any)?.telegram_bot_link;
 
-  const sendOtp = async (em: string) => {
+  useEffect(() => {
+    if (resendIn <= 0) { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } return; }
+    if (!timerRef.current) timerRef.current = window.setInterval(() => setResendIn((s) => Math.max(0, s - 1)), 1000) as unknown as number;
+    return () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
+  }, [resendIn]);
+
+  const sendOtp = async () => {
+    if (!email) { toast.error("Enter your email first"); return; }
     setOtpSending(true);
-    await supabase.functions.invoke("auth-actions", { body: { action: "request_otp", email: em } });
+    const { data, error } = await supabase.functions.invoke("auth-actions", { body: { action: "request_otp", email, origin: window.location.origin } });
     setOtpSending(false);
-    toast.success("If your email is registered, an OTP has been sent.");
+    if (error) { toast.error(error.message); return; }
+    setOtpSent(true);
+    setResendIn(RESEND_SECONDS);
+    toast.success("If your email is registered, a 6-digit code was sent.");
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const verifyOtpAndSignIn = async () => {
     setLoading(true);
-
-    if (otpEnabled && !otpRequired) {
-      // First step: request OTP, don't sign in yet
-      await sendOtp(email);
-      setOtpRequired(true);
+    const { data, error } = await supabase.functions.invoke("auth-actions", {
+      body: { action: "verify_otp", email, code: otpCode, origin: window.location.origin },
+    });
+    if (error || !(data as any)?.ok) {
       setLoading(false);
+      toast.error((data as any)?.error || error?.message || "Invalid or expired code");
       return;
     }
-
-    if (otpEnabled && otpRequired) {
-      const { data, error } = await supabase.functions.invoke("auth-actions", { body: { action: "verify_otp", email, code: otpCode } });
-      if (error || !(data as any)?.ok) {
-        toast.error("Invalid or expired OTP code");
-        setLoading(false);
-        return;
-      }
+    // Extract token_hash from the magiclink and verify on the client to create a real session.
+    const link: string = (data as any).action_link || "";
+    try {
+      const u = new URL(link);
+      const token_hash = u.searchParams.get("token") || u.searchParams.get("token_hash");
+      if (!token_hash) throw new Error("No token in action link");
+      const { error: vErr } = await supabase.auth.verifyOtp({ type: "magiclink", token_hash, email } as any);
+      if (vErr) throw vErr;
+      toast.success("Welcome back!");
+      navigate("/dashboard");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not start session");
+    } finally {
+      setLoading(false);
     }
+  };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (useOtp) {
+      if (!otpSent) { await sendOtp(); return; }
+      if (otpCode.length !== 6) { toast.error("Enter the 6-digit code"); return; }
+      await verifyOtpAndSignIn();
+      return;
+    }
+    setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) toast.error(error.message);
@@ -94,39 +124,56 @@ const Login = () => {
             <p className="text-sm text-muted-foreground mt-2">Sign in to your trading account</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="trader@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-secondary/50 border-border focus:border-primary" required disabled={otpRequired} />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <button type="button" onClick={() => { setForgotEmail(email); setForgotOpen(true); }} className="text-xs text-primary hover:underline flex items-center gap-1">
-                  <Mail className="w-3 h-3" /> Forgot password?
-                </button>
-              </div>
-              <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-secondary/50 border-border focus:border-primary pr-10" required />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
+              <Input id="email" type="email" placeholder="trader@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-secondary/50 border-border focus:border-primary" required disabled={otpSent} />
             </div>
 
-            {otpEnabled && otpRequired && (
+            {!useOtp && (
               <div className="space-y-2">
-                <Label htmlFor="otp" className="flex items-center gap-1"><KeyRound className="w-3 h-3" /> OTP Code (sent to email)</Label>
-                <Input id="otp" inputMode="numeric" pattern="[0-9]*" maxLength={6} placeholder="123456" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} className="bg-secondary/50 border-border focus:border-primary tracking-[0.5em] text-center font-mono" required />
-                <button type="button" onClick={() => sendOtp(email)} disabled={otpSending} className="text-xs text-primary hover:underline">
-                  {otpSending ? "Sending..." : "Resend code"}
-                </button>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <button type="button" onClick={() => { setForgotEmail(email); setForgotOpen(true); }} className="text-xs text-primary hover:underline flex items-center gap-1">
+                    <Mail className="w-3 h-3" /> Forgot password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-secondary/50 border-border focus:border-primary pr-10" required={!useOtp} />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {useOtp && otpSent && (
+              <div className="space-y-2">
+                <Label htmlFor="otp" className="flex items-center gap-1"><KeyRound className="w-3 h-3" /> 6-digit code</Label>
+                <Input id="otp" inputMode="numeric" pattern="[0-9]*" maxLength={6} placeholder="123456" value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))} className="bg-secondary/50 border-border focus:border-primary tracking-[0.5em] text-center font-mono" required autoFocus />
+                <div className="flex items-center justify-between text-xs">
+                  <button type="button" onClick={sendOtp} disabled={resendIn > 0 || otpSending} className="text-primary hover:underline disabled:opacity-50 disabled:no-underline">
+                    {otpSending ? "Sending…" : resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+                  </button>
+                  <button type="button" onClick={() => { setOtpSent(false); setOtpCode(""); setResendIn(0); }} className="text-muted-foreground hover:text-foreground">Use different email</button>
+                </div>
               </div>
             )}
 
             <Button type="submit" disabled={loading} className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90 h-11">
-              {loading ? "Signing In..." : (otpEnabled && !otpRequired ? "Continue" : "Sign In")}
+              {loading ? "Signing In..." : useOtp ? (otpSent ? "Verify & Sign In" : "Send Code") : "Sign In"}
             </Button>
+
+            {otpEnabled && (
+              <button
+                type="button"
+                onClick={() => { setUseOtp(!useOtp); setOtpSent(false); setOtpCode(""); }}
+                className="w-full text-xs text-muted-foreground hover:text-primary flex items-center justify-center gap-1"
+              >
+                <ShieldCheck className="w-3 h-3" />
+                {useOtp ? "Use password instead" : "Use a one-time email code instead"}
+              </button>
+            )}
           </form>
 
           {telegramLink && (
@@ -154,7 +201,7 @@ const Login = () => {
             <DialogTitle>Reset Password</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Enter your email — if an account exists, we'll send a reset link.</p>
+            <p className="text-sm text-muted-foreground">Enter your email — if an account exists, we'll send a secure reset link to your inbox.</p>
             <Input type="email" placeholder="you@example.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} className="bg-secondary/50 border-border" />
             <Button onClick={submitForgot} disabled={!forgotEmail || forgotSending} className="w-full gold-gradient text-primary-foreground font-semibold">
               {forgotSending ? "Sending..." : "Send Reset Link"}
