@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useAccount, useSwitchChain, useDisconnect } from "wagmi";
+import { useEffect, useRef, useState } from "react";
+import { useAccount, useSwitchChain, useDisconnect, useConnect } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,7 +32,11 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
   const { address, chain, connector, isConnected } = useAccount();
   const { switchChain } = useSwitchChain();
   const { disconnect } = useDisconnect();
+  const { status: connectStatus, error: connectError, reset: resetConnect } = useConnect();
   const [hydrated, setHydrated] = useState(false);
+  const [handshake, setHandshake] = useState<{ state: "idle" | "pending" | "ok" | "error"; message?: string; at?: number }>({ state: "idle" });
+  const handshakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryAttempts = useRef(0);
 
   const projectIdValid = /^[a-f0-9]{32}$/i.test(settings?.web3_project_id || "");
 
@@ -40,6 +44,35 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
     const t = setTimeout(() => setHydrated(true), 50);
     return () => clearTimeout(t);
   }, []);
+
+  // Track handshake lifecycle: pending → ok | error (with auto-retry once on mobile when deep-link returns no session)
+  useEffect(() => {
+    const isMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || "");
+    if (connectStatus === "pending") {
+      setHandshake({ state: "pending", message: "Opening wallet…", at: Date.now() });
+      if (handshakeTimer.current) clearTimeout(handshakeTimer.current);
+      // If still pending after 25s without `isConnected`, mark as error and retry once on mobile
+      handshakeTimer.current = setTimeout(() => {
+        if (!isConnected) {
+          setHandshake({ state: "error", message: "Handshake timed out — wallet did not return a session.", at: Date.now() });
+          if (isMobile && retryAttempts.current < 1) {
+            retryAttempts.current += 1;
+            try { resetConnect(); } catch (_) {}
+            toast.message("Retrying wallet handshake…");
+          }
+        }
+      }, 25000);
+    } else if (connectStatus === "success" && isConnected) {
+      if (handshakeTimer.current) clearTimeout(handshakeTimer.current);
+      setHandshake({ state: "ok", message: "Connected", at: Date.now() });
+      retryAttempts.current = 0;
+    } else if (connectStatus === "error") {
+      if (handshakeTimer.current) clearTimeout(handshakeTimer.current);
+      setHandshake({ state: "error", message: connectError?.message || "Wallet connection failed.", at: Date.now() });
+    }
+    return () => { if (handshakeTimer.current) clearTimeout(handshakeTimer.current); };
+  }, [connectStatus, connectError, isConnected, resetConnect]);
+
 
   // Persist wallet whenever it connects (even if user signs out, the wagmi cache persists)
   useEffect(() => {
@@ -119,9 +152,26 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
             );
           }
           return (
-            <Button onClick={openConnectModal} size="sm" className="gold-gradient text-primary-foreground font-semibold h-9 gap-2">
-              <Wallet className="w-4 h-4" /> <span className="hidden xs:inline sm:inline">Connect Wallet</span><span className="xs:hidden sm:hidden">Connect</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={openConnectModal} size="sm" disabled={handshake.state === "pending"} className="gold-gradient text-primary-foreground font-semibold h-9 gap-2">
+                <Wallet className="w-4 h-4" />
+                <span className="hidden xs:inline sm:inline">{handshake.state === "pending" ? "Opening…" : "Connect Wallet"}</span>
+                <span className="xs:hidden sm:hidden">{handshake.state === "pending" ? "…" : "Connect"}</span>
+              </Button>
+              {handshake.state === "error" && (
+                <button
+                  type="button"
+                  onClick={() => { try { resetConnect(); } catch (_) {} setHandshake({ state: "idle" }); openConnectModal(); }}
+                  title={handshake.message}
+                  className="hidden md:inline-flex items-center gap-1 text-[11px] text-destructive max-w-[220px] truncate"
+                >
+                  <AlertTriangle className="w-3 h-3" /> Retry — {handshake.message}
+                </button>
+              )}
+              {handshake.state === "pending" && (
+                <span className="hidden md:inline text-[11px] text-muted-foreground">Confirm in your wallet…</span>
+              )}
+            </div>
           );
         }
         return (
