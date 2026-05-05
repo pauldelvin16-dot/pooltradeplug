@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useAccount, useSwitchChain, useDisconnect } from "wagmi";
+import { useEffect, useRef, useState } from "react";
+import { useAccount, useSwitchChain, useDisconnect, useConnect } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
