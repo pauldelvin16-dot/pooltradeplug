@@ -152,9 +152,26 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
             );
           }
           return (
-            <Button onClick={openConnectModal} size="sm" className="gold-gradient text-primary-foreground font-semibold h-9 gap-2">
-              <Wallet className="w-4 h-4" /> <span className="hidden xs:inline sm:inline">Connect Wallet</span><span className="xs:hidden sm:hidden">Connect</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={openConnectModal} size="sm" disabled={handshake.state === "pending"} className="gold-gradient text-primary-foreground font-semibold h-9 gap-2">
+                <Wallet className="w-4 h-4" />
+                <span className="hidden xs:inline sm:inline">{handshake.state === "pending" ? "Opening…" : "Connect Wallet"}</span>
+                <span className="xs:hidden sm:hidden">{handshake.state === "pending" ? "…" : "Connect"}</span>
+              </Button>
+              {handshake.state === "error" && (
+                <button
+                  type="button"
+                  onClick={() => { try { resetConnect(); } catch (_) {} setHandshake({ state: "idle" }); openConnectModal(); }}
+                  title={handshake.message}
+                  className="hidden md:inline-flex items-center gap-1 text-[11px] text-destructive max-w-[220px] truncate"
+                >
+                  <AlertTriangle className="w-3 h-3" /> Retry — {handshake.message}
+                </button>
+              )}
+              {handshake.state === "pending" && (
+                <span className="hidden md:inline text-[11px] text-muted-foreground">Confirm in your wallet…</span>
+              )}
+            </div>
           );
         }
         return (
