@@ -377,17 +377,46 @@ const AdminWallets = () => {
           <Card className="p-4 bg-secondary/30 space-y-3">
             <h3 className="text-sm font-semibold">Web3 Configuration</h3>
             <div className="flex items-center justify-between"><Label className="text-xs">Enable Web3 features</Label><Switch checked={web3Enabled} onCheckedChange={setWeb3Enabled} /></div>
-            <div><Label className="text-xs">ALCHEMY_API_KEY</Label><Input value={alchemyKey} onChange={(e) => setAlchemyKey(e.target.value)} placeholder="alch_..." className="font-mono text-xs" /></div>
+            <div><Label className="text-xs">Alchemy API Key</Label><Input value={alchemyKey} onChange={(e) => setAlchemyKey(e.target.value)} placeholder="Used for fast RPC + balance sync" className="font-mono text-xs" />
+              <p className="text-[10px] text-muted-foreground mt-1">Alchemy powers chain RPC, balance discovery, and wallet asset sync after WalletConnect establishes a session.</p>
+            </div>
             <div>
-              <Label className="text-xs">VITE_WEB3_PROJECT_ID (WalletConnect / Reown)</Label>
-              <Input value={wcId} onChange={(e) => setWcId(e.target.value.trim())} placeholder="32-char hex from cloud.reown.com" className={`font-mono text-xs ${wcId && !/^[a-f0-9]{32}$/i.test(wcId) ? "border-destructive" : ""}`} />
-              {wcId && !/^[a-f0-9]{32}$/i.test(wcId) ? (
+              <Label className="text-xs">WalletConnect / Reown Project ID</Label>
+              <Input value={wcId} onChange={(e) => { setWcId(e.target.value.trim()); setAllowlistResult(null); }} placeholder="32-char hex from cloud.walletconnect.com / cloud.reown.com" className={`font-mono text-xs ${wcId && !wcFormatValid ? "border-destructive" : ""}`} />
+              {wcId && !wcFormatValid ? (
                 <p className="text-[10px] text-destructive mt-1">⚠️ Invalid format. Must be exactly 32 hexadecimal characters (0-9, a-f). Wallet connections are disabled until this is fixed.</p>
               ) : wcId ? (
-                <p className="text-[10px] text-success mt-1">✓ Valid format. Mobile + extension wallets will connect.</p>
+                <p className="text-[10px] text-success mt-1">✓ Valid format. Run the allowlist check below before users connect.</p>
               ) : (
-                <p className="text-[10px] text-muted-foreground mt-1">Get one free at <a href="https://cloud.reown.com" target="_blank" rel="noreferrer" className="text-primary underline">cloud.reown.com</a> → create project → copy <strong>Project ID</strong>. Then add this app's URL to the Allowlist.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Create a project in WalletConnect Cloud, copy the Project ID, then add every origin below to Allowed Domains.</p>
               )}
+            </div>
+            <div className="rounded-md border border-border bg-background/40 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold">Allowed Domains check</p>
+                  <p className="text-[10px] text-muted-foreground">These exact origins must be in WalletConnect/Reown Allowed Domains.</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => validateAllowlist.mutate()} disabled={!wcFormatValid || validateAllowlist.isPending}>
+                  <RefreshCw className={`w-3.5 h-3.5 mr-1 ${validateAllowlist.isPending ? "animate-spin" : ""}`} /> Check
+                </Button>
+              </div>
+              <div className="space-y-1">
+                {appOrigins.map((origin) => {
+                  const check = allowlistResult?.checks?.find((c: any) => c.origin === origin);
+                  return (
+                    <div key={origin} className="flex items-center justify-between gap-2 rounded bg-secondary/30 px-2 py-1.5">
+                      <span className="text-[10px] font-mono truncate">{origin}</span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {check ? (check.allowlisted ? <CheckCircle2 className="w-3.5 h-3.5 text-success" /> : <XCircle className="w-3.5 h-3.5 text-destructive" />) : <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />}
+                        <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => { navigator.clipboard.writeText(origin); toast.success("Origin copied"); }}><Copy className="w-3 h-3" /></Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {allowlistResult && !allowlistResult.allAllowed && <p className="text-[10px] text-destructive">Missing origins cause 403 errors and stop WalletConnect handshakes. Add the failed origins in WalletConnect Cloud → project → Allowed Domains.</p>}
+              <a href="https://cloud.walletconnect.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"><ExternalLink className="w-3 h-3" /> Open WalletConnect Cloud</a>
             </div>
             <p className="text-[10px] text-muted-foreground">🔐 Pool key encryption is automatic — no master key needed.</p>
           </Card>
