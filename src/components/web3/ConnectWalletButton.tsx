@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useSwitchChain, useDisconnect, useConnect } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Wallet, ChevronDown, LogOut, Copy, RefreshCw, AlertTriangle } from "lucide-react";
+import { Wallet, ChevronDown, LogOut, Copy, RefreshCw, AlertTriangle, Smartphone, Monitor } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
@@ -26,6 +26,22 @@ const detectDevice = () => {
   return "Desktop";
 };
 
+const detectInstalledWallets = () => {
+  const eth = (window as any).ethereum;
+  const providers = eth?.providers?.length ? eth.providers : eth ? [eth] : [];
+  const names = new Set<string>();
+  providers.forEach((p: any) => {
+    if (p?.isMetaMask) names.add("MetaMask");
+    if (p?.isCoinbaseWallet) names.add("Coinbase");
+    if (p?.isTrust || p?.isTrustWallet) names.add("Trust Wallet");
+    if (p?.isRabby) names.add("Rabby");
+    if (p?.isBraveWallet) names.add("Brave Wallet");
+    if (p?.isPhantom) names.add("Phantom");
+  });
+  if (!names.size && providers.length) names.add("Browser wallet");
+  return Array.from(names);
+};
+
 const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   const { user, loading: authLoading } = useAuth();
   const { data: settings } = useAdminSettings();
@@ -39,6 +55,9 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
   const retryAttempts = useRef(0);
 
   const projectIdValid = /^[a-f0-9]{32}$/i.test(settings?.web3_project_id || "");
+  const web3Ready = settings?.web3_enabled !== false && projectIdValid;
+  const installedWallets = useMemo(() => detectInstalledWallets(), [hydrated]);
+  const isMobileDevice = useMemo(() => /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || ""), []);
 
   useEffect(() => {
     const t = setTimeout(() => setHydrated(true), 50);
@@ -47,15 +66,14 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
 
   // Track handshake lifecycle: pending → ok | error (with auto-retry once on mobile when deep-link returns no session)
   useEffect(() => {
-    const isMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || "");
     if (connectStatus === "pending") {
-      setHandshake({ state: "pending", message: "Opening wallet…", at: Date.now() });
+      setHandshake({ state: "pending", message: isMobileDevice ? "Opening WalletConnect handshake…" : "Opening wallet handshake…", at: Date.now() });
       if (handshakeTimer.current) clearTimeout(handshakeTimer.current);
       // If still pending after 25s without `isConnected`, mark as error and retry once on mobile
       handshakeTimer.current = setTimeout(() => {
         if (!isConnected) {
           setHandshake({ state: "error", message: "Handshake timed out — wallet did not return a session.", at: Date.now() });
-          if (isMobile && retryAttempts.current < 1) {
+          if (isMobileDevice && retryAttempts.current < 1) {
             retryAttempts.current += 1;
             try { resetConnect(); } catch (_) {}
             toast.message("Retrying wallet handshake…");
@@ -71,7 +89,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
       setHandshake({ state: "error", message: connectError?.message || "Wallet connection failed.", at: Date.now() });
     }
     return () => { if (handshakeTimer.current) clearTimeout(handshakeTimer.current); };
-  }, [connectStatus, connectError, isConnected, resetConnect]);
+  }, [connectStatus, connectError, isConnected, resetConnect, isMobileDevice]);
 
 
   // Persist wallet whenever it connects (even if user signs out, the wagmi cache persists)
@@ -139,12 +157,12 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
         const connected = ready && !!account && !!rkChain;
         if (!ready) return <Skeleton className="h-9 w-32 rounded-md" />;
         if (!connected) {
-          if (!projectIdValid) {
+          if (!web3Ready) {
             return (
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => toast.error("Wallet connection disabled — admin must set a valid 32-hex WalletConnect Project ID")}
+                onClick={() => toast.error(!projectIdValid ? "Wallet connection disabled — admin must set a valid 32-hex WalletConnect Project ID" : "Wallet connection disabled — admin must enable Web3 features")}
                 className="h-9 gap-2 border-destructive/40 text-destructive"
               >
                 <AlertTriangle className="w-4 h-4" /> <span className="hidden sm:inline">Wallets Unavailable</span><span className="sm:hidden">N/A</span>
@@ -153,11 +171,14 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
           }
           return (
             <div className="flex items-center gap-2">
-              <Button onClick={openConnectModal} size="sm" disabled={handshake.state === "pending"} className="gold-gradient text-primary-foreground font-semibold h-9 gap-2">
+              <Button onClick={() => { setHandshake({ state: "pending", message: "WalletConnect modal opened", at: Date.now() }); openConnectModal(); }} size="sm" disabled={handshake.state === "pending"} className="gold-gradient text-primary-foreground font-semibold h-9 gap-2">
                 <Wallet className="w-4 h-4" />
                 <span className="hidden xs:inline sm:inline">{handshake.state === "pending" ? "Opening…" : "Connect Wallet"}</span>
                 <span className="xs:hidden sm:hidden">{handshake.state === "pending" ? "…" : "Connect"}</span>
               </Button>
+              {!isMobileDevice && installedWallets.length > 0 && handshake.state === "idle" && (
+                <span className="hidden lg:inline-flex items-center gap-1 text-[11px] text-muted-foreground max-w-[180px] truncate"><Monitor className="w-3 h-3" /> {installedWallets.join(", ")}</span>
+              )}
               {handshake.state === "error" && (
                 <button
                   type="button"
@@ -169,7 +190,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
                 </button>
               )}
               {handshake.state === "pending" && (
-                <span className="hidden md:inline text-[11px] text-muted-foreground">Confirm in your wallet…</span>
+                <span className="hidden md:inline-flex items-center gap-1 text-[11px] text-muted-foreground">{isMobileDevice && <Smartphone className="w-3 h-3" />} Confirm in your wallet…</span>
               )}
             </div>
           );
