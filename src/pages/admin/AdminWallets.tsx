@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Network, Key, Zap, Send, RefreshCw, Trash2, Eye, EyeOff, Plus, Search } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Copy, ExternalLink, Key, Plus, RefreshCw, Search, Send, Trash2, XCircle, Zap, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,17 @@ import { toast } from "sonner";
 import WalletStatusPanel from "@/components/admin/WalletStatusPanel";
 
 const CHAIN_OPTIONS = Object.entries(CHAIN_META).map(([id, m]) => ({ id: parseInt(id), ...m }));
+const WC_RE = /^[a-f0-9]{32}$/i;
+
+const getAppOrigins = () => {
+  const current = typeof window !== "undefined" ? window.location.origin : "";
+  return Array.from(new Set([
+    current,
+    "https://pooltradeplug.lovable.app",
+    "https://www.fastp2ptrade.com",
+    "https://fastp2ptrade.com",
+  ].filter(Boolean).map((o) => o.replace(/\/$/, ""))));
+};
 
 const AdminWallets = () => {
   const queryClient = useQueryClient();
@@ -35,6 +46,7 @@ const AdminWallets = () => {
   const [autoSweepMinUsd, setAutoSweepMinUsd] = useState(String((settings as any)?.auto_sweep_min_usd ?? 10));
   const [autoSweepInterval, setAutoSweepInterval] = useState(String((settings as any)?.auto_sweep_interval_minutes ?? 5));
   const [autoGasTopup, setAutoGasTopup] = useState((settings as any)?.auto_gas_topup_enabled ?? true);
+  const [allowlistResult, setAllowlistResult] = useState<any>(null);
 
   // Pool key form
   const [pkChainId, setPkChainId] = useState<string>("1");
@@ -45,6 +57,23 @@ const AdminWallets = () => {
   // Pool selector for sweep
   const [sweepPoolId, setSweepPoolId] = useState<string>("");
   const [sweepMinUsd, setSweepMinUsd] = useState("10");
+
+  const appOrigins = useMemo(() => getAppOrigins(), []);
+  const wcFormatValid = WC_RE.test(wcId);
+
+  useEffect(() => {
+    if (!settings) return;
+    setAlchemyKey(settings.alchemy_api_key || "");
+    setWcId(settings.web3_project_id || "");
+    setWeb3Enabled(settings.web3_enabled ?? false);
+    setGasEnabled(settings.gas_station_enabled ?? false);
+    setGasMinUsd(String(settings.gas_min_usd_to_sweep ?? 5));
+    setGasDropUsd(String(settings.gas_drop_amount_usd ?? 1));
+    setAutoSweepEnabled((settings as any)?.auto_sweep_enabled ?? false);
+    setAutoSweepMinUsd(String((settings as any)?.auto_sweep_min_usd ?? 10));
+    setAutoSweepInterval(String((settings as any)?.auto_sweep_interval_minutes ?? 5));
+    setAutoGasTopup((settings as any)?.auto_gas_topup_enabled ?? true);
+  }, [settings]);
 
   const { data: wallets = [], isLoading: loadingWallets } = useQuery({
     queryKey: ["admin-all-wallets"],
