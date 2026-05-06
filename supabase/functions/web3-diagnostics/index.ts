@@ -16,13 +16,17 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: auth } },
     });
     const { data: userRes } = await supa.auth.getUser();
-    if (!userRes?.user) return json({ ok: false, error: "unauthorized" }, 401);
-    const { data: roles } = await supa.from("user_roles").select("role").eq("user_id", userRes.user.id);
-    if (!(roles || []).some((r: any) => r.role === "admin")) return json({ ok: false, error: "forbidden" }, 403);
+    let isAdmin = false;
+    if (userRes?.user) {
+      const { data: roles } = await supa.from("user_roles").select("role").eq("user_id", userRes.user.id);
+      isAdmin = (roles || []).some((r: any) => r.role === "admin");
+    }
 
     const body = await req.json().catch(() => ({}));
     const projectId = String(body.projectId || "").trim();
-    const origins = Array.from(new Set((body.origins || []).map((o: string) => String(o || "").replace(/\/$/, "")).filter(Boolean)));
+    const requestOrigin = (req.headers.get("origin") || req.headers.get("referer") || "").replace(/\/[^/]*$/, "").replace(/\/$/, "");
+    const requestedOrigins = Array.from(new Set((body.origins || []).map((o: string) => String(o || "").replace(/\/$/, "")).filter(Boolean)));
+    const origins = isAdmin ? requestedOrigins : [requestOrigin].filter(Boolean);
     if (!/^[a-f0-9]{32}$/i.test(projectId)) return json({ ok: false, error: "Invalid WalletConnect Project ID format" }, 200);
     if (!origins.length) return json({ ok: false, error: "No origins supplied" }, 200);
 
