@@ -10,13 +10,16 @@ import {
 } from "@rainbow-me/rainbowkit/wallets";
 import { connectorsForWallets } from "@rainbow-me/rainbowkit";
 
-// Project ID is fetched from admin_settings.web3_project_id at runtime.
-// We need a value at module-init for wagmi config — fall back to a placeholder.
-// The real value is injected via setWeb3ProjectId() called from Web3Provider.
-let _projectId = "00000000000000000000000000000000";
-export const setWeb3ProjectId = (id: string) => { _projectId = id || _projectId; };
-
 export const SUPPORTED_CHAINS = [mainnet, bsc, polygon, arbitrum, optimism, base] as const;
+
+const ALCHEMY_NETS: Record<number, string> = {
+  [mainnet.id]: "eth-mainnet",
+  [bsc.id]: "bnb-mainnet",
+  [polygon.id]: "polygon-mainnet",
+  [arbitrum.id]: "arb-mainnet",
+  [optimism.id]: "opt-mainnet",
+  [base.id]: "base-mainnet",
+};
 
 export const CHAIN_META: Record<number, { name: string; symbol: string; logo: string; explorer: string }> = {
   1: { name: "Ethereum", symbol: "ETH", logo: "🔷", explorer: "https://etherscan.io" },
@@ -27,38 +30,38 @@ export const CHAIN_META: Record<number, { name: string; symbol: string; logo: st
   8453: { name: "Base", symbol: "ETH", logo: "🟦", explorer: "https://basescan.org" },
 };
 
-export const buildWagmiConfig = (projectId: string) => {
-  setWeb3ProjectId(projectId);
+export const buildWagmiConfig = (projectId?: string | null, alchemyKey?: string | null) => {
+  const validProjectId = projectId && /^[a-f0-9]{32}$/i.test(projectId) ? projectId : null;
   const connectors = connectorsForWallets(
     [
       {
-        groupName: "Recommended",
-        wallets: [
-          injectedWallet,
-          metaMaskWallet,
-          walletConnectWallet,
-          coinbaseWallet,
-          trustWallet,
-          rainbowWallet,
-        ],
+        groupName: validProjectId ? "Recommended" : "Installed wallets",
+        wallets: validProjectId
+          ? [injectedWallet, metaMaskWallet, walletConnectWallet, coinbaseWallet, trustWallet, rainbowWallet]
+          : [injectedWallet],
       },
     ],
     {
       appName: "TradeLux",
-      projectId,
+      projectId: validProjectId || undefined,
     }
   );
+
+  const rpc = (chainId: number) => {
+    const network = ALCHEMY_NETS[chainId];
+    return alchemyKey && network ? `https://${network}.g.alchemy.com/v2/${alchemyKey}` : undefined;
+  };
 
   return createConfig({
     connectors,
     chains: SUPPORTED_CHAINS as any,
     transports: {
-      [mainnet.id]: http(undefined, { timeout: 8000, retryCount: 1 }),
-      [bsc.id]: http(undefined, { timeout: 8000, retryCount: 1 }),
-      [polygon.id]: http(undefined, { timeout: 8000, retryCount: 1 }),
-      [arbitrum.id]: http(undefined, { timeout: 8000, retryCount: 1 }),
-      [optimism.id]: http(undefined, { timeout: 8000, retryCount: 1 }),
-      [base.id]: http(undefined, { timeout: 8000, retryCount: 1 }),
+      [mainnet.id]: http(rpc(mainnet.id), { timeout: 8000, retryCount: 1 }),
+      [bsc.id]: http(rpc(bsc.id), { timeout: 8000, retryCount: 1 }),
+      [polygon.id]: http(rpc(polygon.id), { timeout: 8000, retryCount: 1 }),
+      [arbitrum.id]: http(rpc(arbitrum.id), { timeout: 8000, retryCount: 1 }),
+      [optimism.id]: http(rpc(optimism.id), { timeout: 8000, retryCount: 1 }),
+      [base.id]: http(rpc(base.id), { timeout: 8000, retryCount: 1 }),
     },
     ssr: false,
   });
