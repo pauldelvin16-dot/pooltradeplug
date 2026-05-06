@@ -120,7 +120,7 @@ const AdminWallets = () => {
   const saveWeb3 = useMutation({
     mutationFn: async () => {
       if (!settings?.id) throw new Error("Settings row missing");
-      if (wcId && !/^[a-f0-9]{32}$/i.test(wcId)) {
+      if (wcId && !WC_RE.test(wcId)) {
         throw new Error("WalletConnect Project ID must be 32 hex chars (0-9, a-f). Get one at cloud.reown.com.");
       }
       const { error } = await supabase.from("admin_settings").update({
@@ -138,6 +138,24 @@ const AdminWallets = () => {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Web3 settings saved"); refetchSettings(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const validateAllowlist = useMutation({
+    mutationFn: async () => {
+      if (!WC_RE.test(wcId)) throw new Error("Enter a valid 32-hex WalletConnect Project ID first");
+      const { data, error } = await supabase.functions.invoke("web3-diagnostics", {
+        body: { projectId: wcId, origins: appOrigins },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data;
+    },
+    onSuccess: (data: any) => {
+      setAllowlistResult(data);
+      if (data?.allAllowed) toast.success("All app origins are allowlisted");
+      else toast.error("One or more app origins are missing from the WalletConnect allowlist");
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
