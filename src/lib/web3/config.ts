@@ -43,7 +43,7 @@ export const buildWagmiConfig = (projectId?: string | null, alchemyKey?: string 
     ],
     {
       appName: "TradeLux",
-      projectId: validProjectId || undefined,
+      projectId: validProjectId || "00000000000000000000000000000000",
     }
   );
 
