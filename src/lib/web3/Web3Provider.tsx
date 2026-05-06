@@ -12,12 +12,10 @@ const web3QueryClient = new QueryClient();
 
 export const Web3Provider = ({ children }: { children: ReactNode }) => {
   const { data: settings } = useAdminSettings();
-  const raw = settings?.web3_project_id || "";
-  // Reown/WalletConnect Project IDs are 32 hex chars. Anything else is rejected.
-  const isValid = /^[a-f0-9]{32}$/i.test(raw);
-  const projectId = isValid ? raw : "00000000000000000000000000000000";
+  const projectId = settings?.web3_project_id || null;
+  const alchemyKey = settings?.alchemy_api_key || null;
 
-  const config = useMemo(() => buildWagmiConfig(projectId), [projectId]);
+  const config = useMemo(() => buildWagmiConfig(projectId, alchemyKey), [projectId, alchemyKey]);
 
   return (
     <WagmiProvider config={config} reconnectOnMount>
