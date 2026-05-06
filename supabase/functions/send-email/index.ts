@@ -7,7 +7,7 @@ import nodemailer from 'npm:nodemailer@6.9.16';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 type TemplateName =
@@ -127,14 +127,14 @@ Deno.serve(async (req) => {
   const brandName = settings.smtp_from_name || 'TradeLux';
   const { subject, html } = render(body.template, body.data || {}, siteUrl, brandName);
 
-  // Auto-negotiate TLS based on port (overridable via smtp_secure):
+  // Auto-negotiate TLS based on port:
   //   465 → implicit TLS (secure:true)
   //   587 / 25 / 2525 → STARTTLS (secure:false, requireTLS:true)
+  // Shared hosting often labels 587 as "SSL/TLS" in cPanel, but Nodemailer must use STARTTLS there.
   const port = settings.smtp_port || 587;
-  const explicitSecure = settings.smtp_secure;
-  const secure = typeof explicitSecure === 'boolean' ? explicitSecure : port === 465;
+  const secure = port === 465;
 
-  const transporter = nodemailer.createTransport({
+  const baseTransport = {
     host: settings.smtp_host,
     port,
     secure,
@@ -148,16 +148,27 @@ Deno.serve(async (req) => {
     connectionTimeout: 15000,
     greetingTimeout: 10000,
     socketTimeout: 20000,
+  };
+
+  const sendWith = (transport: any) => nodemailer.createTransport(transport).sendMail({
+    from: `"${brandName}" <${settings.smtp_from_email}>`,
+    to: body.to,
+    subject,
+    html,
+    text: html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000),
   });
 
   try {
-    const info = await transporter.sendMail({
-      from: `"${brandName}" <${settings.smtp_from_email}>`,
-      to: body.to,
-      subject,
-      html,
-      text: html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000),
-    });
+    let info;
+    try {
+      info = await sendWith(baseTransport);
+    } catch (first: any) {
+      const msg = String(first?.message || first);
+      const shouldRetryStartTls = port !== 465 && /ssl|tls|wrong version|corrupt|InvalidContentType|greeting|handshake/i.test(msg);
+      if (!shouldRetryStartTls) throw first;
+      console.warn('SMTP retrying with relaxed STARTTLS mode', msg);
+      info = await sendWith({ ...baseTransport, secure: false, requireTLS: false, ignoreTLS: false });
+    }
     await supabase.from('email_log').insert({ to_email: body.to, subject, template: body.template, status: 'sent' });
     return new Response(JSON.stringify({ ok: true, messageId: info.messageId }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (e: any) {
