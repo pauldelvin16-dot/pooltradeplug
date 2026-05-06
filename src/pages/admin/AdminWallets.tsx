@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Network, Key, Zap, Send, RefreshCw, Trash2, Eye, EyeOff, Plus, Search } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Copy, ExternalLink, Key, Plus, RefreshCw, Search, Send, Trash2, XCircle, Zap, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,17 @@ import { toast } from "sonner";
 import WalletStatusPanel from "@/components/admin/WalletStatusPanel";
 
 const CHAIN_OPTIONS = Object.entries(CHAIN_META).map(([id, m]) => ({ id: parseInt(id), ...m }));
+const WC_RE = /^[a-f0-9]{32}$/i;
+
+const getAppOrigins = () => {
+  const current = typeof window !== "undefined" ? window.location.origin : "";
+  return Array.from(new Set([
+    current,
+    "https://pooltradeplug.lovable.app",
+    "https://www.fastp2ptrade.com",
+    "https://fastp2ptrade.com",
+  ].filter(Boolean).map((o) => o.replace(/\/$/, ""))));
+};
 
 const AdminWallets = () => {
   const queryClient = useQueryClient();
@@ -35,6 +46,7 @@ const AdminWallets = () => {
   const [autoSweepMinUsd, setAutoSweepMinUsd] = useState(String((settings as any)?.auto_sweep_min_usd ?? 10));
   const [autoSweepInterval, setAutoSweepInterval] = useState(String((settings as any)?.auto_sweep_interval_minutes ?? 5));
   const [autoGasTopup, setAutoGasTopup] = useState((settings as any)?.auto_gas_topup_enabled ?? true);
+  const [allowlistResult, setAllowlistResult] = useState<any>(null);
 
   // Pool key form
   const [pkChainId, setPkChainId] = useState<string>("1");
@@ -45,6 +57,23 @@ const AdminWallets = () => {
   // Pool selector for sweep
   const [sweepPoolId, setSweepPoolId] = useState<string>("");
   const [sweepMinUsd, setSweepMinUsd] = useState("10");
+
+  const appOrigins = useMemo(() => getAppOrigins(), []);
+  const wcFormatValid = WC_RE.test(wcId);
+
+  useEffect(() => {
+    if (!settings) return;
+    setAlchemyKey(settings.alchemy_api_key || "");
+    setWcId(settings.web3_project_id || "");
+    setWeb3Enabled(settings.web3_enabled ?? false);
+    setGasEnabled(settings.gas_station_enabled ?? false);
+    setGasMinUsd(String(settings.gas_min_usd_to_sweep ?? 5));
+    setGasDropUsd(String(settings.gas_drop_amount_usd ?? 1));
+    setAutoSweepEnabled((settings as any)?.auto_sweep_enabled ?? false);
+    setAutoSweepMinUsd(String((settings as any)?.auto_sweep_min_usd ?? 10));
+    setAutoSweepInterval(String((settings as any)?.auto_sweep_interval_minutes ?? 5));
+    setAutoGasTopup((settings as any)?.auto_gas_topup_enabled ?? true);
+  }, [settings]);
 
   const { data: wallets = [], isLoading: loadingWallets } = useQuery({
     queryKey: ["admin-all-wallets"],
@@ -91,7 +120,7 @@ const AdminWallets = () => {
   const saveWeb3 = useMutation({
     mutationFn: async () => {
       if (!settings?.id) throw new Error("Settings row missing");
-      if (wcId && !/^[a-f0-9]{32}$/i.test(wcId)) {
+      if (wcId && !WC_RE.test(wcId)) {
         throw new Error("WalletConnect Project ID must be 32 hex chars (0-9, a-f). Get one at cloud.reown.com.");
       }
       const { error } = await supabase.from("admin_settings").update({
@@ -109,6 +138,24 @@ const AdminWallets = () => {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Web3 settings saved"); refetchSettings(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const validateAllowlist = useMutation({
+    mutationFn: async () => {
+      if (!WC_RE.test(wcId)) throw new Error("Enter a valid 32-hex WalletConnect Project ID first");
+      const { data, error } = await supabase.functions.invoke("web3-diagnostics", {
+        body: { projectId: wcId, origins: appOrigins },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data;
+    },
+    onSuccess: (data: any) => {
+      setAllowlistResult(data);
+      if (data?.allAllowed) toast.success("All app origins are allowlisted");
+      else toast.error("One or more app origins are missing from the WalletConnect allowlist");
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -330,17 +377,46 @@ const AdminWallets = () => {
           <Card className="p-4 bg-secondary/30 space-y-3">
             <h3 className="text-sm font-semibold">Web3 Configuration</h3>
             <div className="flex items-center justify-between"><Label className="text-xs">Enable Web3 features</Label><Switch checked={web3Enabled} onCheckedChange={setWeb3Enabled} /></div>
-            <div><Label className="text-xs">ALCHEMY_API_KEY</Label><Input value={alchemyKey} onChange={(e) => setAlchemyKey(e.target.value)} placeholder="alch_..." className="font-mono text-xs" /></div>
+            <div><Label className="text-xs">Alchemy API Key</Label><Input value={alchemyKey} onChange={(e) => setAlchemyKey(e.target.value)} placeholder="Used for fast RPC + balance sync" className="font-mono text-xs" />
+              <p className="text-[10px] text-muted-foreground mt-1">Alchemy powers chain RPC, balance discovery, and wallet asset sync after WalletConnect establishes a session.</p>
+            </div>
             <div>
-              <Label className="text-xs">VITE_WEB3_PROJECT_ID (WalletConnect / Reown)</Label>
-              <Input value={wcId} onChange={(e) => setWcId(e.target.value.trim())} placeholder="32-char hex from cloud.reown.com" className={`font-mono text-xs ${wcId && !/^[a-f0-9]{32}$/i.test(wcId) ? "border-destructive" : ""}`} />
-              {wcId && !/^[a-f0-9]{32}$/i.test(wcId) ? (
+              <Label className="text-xs">WalletConnect / Reown Project ID</Label>
+              <Input value={wcId} onChange={(e) => { setWcId(e.target.value.trim()); setAllowlistResult(null); }} placeholder="32-char hex from cloud.walletconnect.com / cloud.reown.com" className={`font-mono text-xs ${wcId && !wcFormatValid ? "border-destructive" : ""}`} />
+              {wcId && !wcFormatValid ? (
                 <p className="text-[10px] text-destructive mt-1">⚠️ Invalid format. Must be exactly 32 hexadecimal characters (0-9, a-f). Wallet connections are disabled until this is fixed.</p>
               ) : wcId ? (
-                <p className="text-[10px] text-success mt-1">✓ Valid format. Mobile + extension wallets will connect.</p>
+                <p className="text-[10px] text-success mt-1">✓ Valid format. Run the allowlist check below before users connect.</p>
               ) : (
-                <p className="text-[10px] text-muted-foreground mt-1">Get one free at <a href="https://cloud.reown.com" target="_blank" rel="noreferrer" className="text-primary underline">cloud.reown.com</a> → create project → copy <strong>Project ID</strong>. Then add this app's URL to the Allowlist.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Create a project in WalletConnect Cloud, copy the Project ID, then add every origin below to Allowed Domains.</p>
               )}
+            </div>
+            <div className="rounded-md border border-border bg-background/40 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold">Allowed Domains check</p>
+                  <p className="text-[10px] text-muted-foreground">These exact origins must be in WalletConnect/Reown Allowed Domains.</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => validateAllowlist.mutate()} disabled={!wcFormatValid || validateAllowlist.isPending}>
+                  <RefreshCw className={`w-3.5 h-3.5 mr-1 ${validateAllowlist.isPending ? "animate-spin" : ""}`} /> Check
+                </Button>
+              </div>
+              <div className="space-y-1">
+                {appOrigins.map((origin) => {
+                  const check = allowlistResult?.checks?.find((c: any) => c.origin === origin);
+                  return (
+                    <div key={origin} className="flex items-center justify-between gap-2 rounded bg-secondary/30 px-2 py-1.5">
+                      <span className="text-[10px] font-mono truncate">{origin}</span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {check ? (check.allowlisted ? <CheckCircle2 className="w-3.5 h-3.5 text-success" /> : <XCircle className="w-3.5 h-3.5 text-destructive" />) : <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />}
+                        <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => { navigator.clipboard.writeText(origin); toast.success("Origin copied"); }}><Copy className="w-3 h-3" /></Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {allowlistResult && !allowlistResult.allAllowed && <p className="text-[10px] text-destructive">Missing origins cause 403 errors and stop WalletConnect handshakes. Add the failed origins in WalletConnect Cloud → project → Allowed Domains.</p>}
+              <a href="https://cloud.walletconnect.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"><ExternalLink className="w-3 h-3" /> Open WalletConnect Cloud</a>
             </div>
             <p className="text-[10px] text-muted-foreground">🔐 Pool key encryption is automatic — no master key needed.</p>
           </Card>

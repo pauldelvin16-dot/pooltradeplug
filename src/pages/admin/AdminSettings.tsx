@@ -175,7 +175,7 @@ const AdminSettings = () => {
       const { error } = await supabase.from("admin_settings").update({
         smtp_host: smtpHost || null,
         smtp_port: parseInt(smtpPort) || 587,
-        smtp_secure: smtpSecure,
+        smtp_secure: (parseInt(smtpPort) || 587) === 465,
         smtp_username: smtpUser || null,
         smtp_password: smtpPass || null,
         smtp_from_email: smtpFromEmail || null,
@@ -448,7 +448,7 @@ const AdminSettings = () => {
           <div className="space-y-2"><Label>Port</Label><Input type="number" value={smtpPort} onChange={(e) => setSmtpPort(e.target.value)} placeholder="587" className="bg-secondary/50 border-border" /></div>
         </div>
         <div className="flex items-center justify-between py-2">
-          <div><p className="text-sm">Use SSL/TLS (port 465)</p><p className="text-xs text-muted-foreground">Off = STARTTLS on 587</p></div>
+          <div><p className="text-sm">Implicit SSL/TLS</p><p className="text-xs text-muted-foreground">Automatically used only on port 465. Port 587 uses STARTTLS for shared hosting.</p></div>
           <button onClick={() => setSmtpSecure(!smtpSecure)}>
             {smtpSecure ? <ToggleRight className="w-6 h-6 text-success" /> : <ToggleLeft className="w-6 h-6 text-muted-foreground" />}
           </button>
