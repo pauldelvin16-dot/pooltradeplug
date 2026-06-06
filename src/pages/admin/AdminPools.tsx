@@ -205,10 +205,18 @@ const AdminPools = () => {
               updatePool.mutate({
                 id: editingPool.id,
                 updates: {
+                  name: editName,
+                  description: editDesc || null,
+                  entry_amount: parseFloat(editEntry),
+                  target_profit: parseFloat(editTarget),
                   current_profit: parseFloat(editProfit),
                   current_participants: parseInt(editParticipants),
+                  max_participants: parseInt(editMaxParts),
+                  duration_days: parseInt(editDays),
+                  end_date: new Date(Date.now() + (parseInt(editDays) || 30) * 86400000).toISOString(),
                   traded_symbol: editSymbol || null,
                   profit_split_percentage: parseFloat(editSplit),
+                  refund_policy: editRefund,
                   status: editStatus,
                 },
               });
@@ -255,6 +263,9 @@ const AdminPools = () => {
                 )}
                 <Button size="sm" variant="ghost" onClick={() => openEdit(pool)} className="text-primary hover:bg-primary/10">
                   <Edit2 className="w-4 h-4 mr-1" /> Edit
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => deletePool.mutate(pool.id)} className="text-destructive hover:bg-destructive/10">
+                  <Trash2 className="w-4 h-4 mr-1" /> Delete
                 </Button>
               </div>
             </div>
