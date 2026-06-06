@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import StatusBadge from "@/components/StatusBadge";
-import { Plus, Edit2, Users } from "lucide-react";
+import { Plus, Edit2, Trash2, Users, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +30,13 @@ const AdminPools = () => {
   const [editSymbol, setEditSymbol] = useState("");
   const [editSplit, setEditSplit] = useState("");
   const [editStatus, setEditStatus] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editTarget, setEditTarget] = useState("");
+  const [editEntry, setEditEntry] = useState("");
+  const [editMaxParts, setEditMaxParts] = useState("");
+  const [editDays, setEditDays] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editRefund, setEditRefund] = useState("");
 
   const { data: allPools = [] } = useQuery({
     queryKey: ["admin-pools"],
@@ -79,6 +86,13 @@ const AdminPools = () => {
 
   const openEdit = (pool: any) => {
     setEditingPool(pool);
+    setEditName(pool.name || "");
+    setEditTarget(String(pool.target_profit));
+    setEditEntry(String(pool.entry_amount));
+    setEditMaxParts(String(pool.max_participants));
+    setEditDays(String(pool.duration_days || 30));
+    setEditDesc(pool.description || "");
+    setEditRefund(pool.refund_policy || "");
     setEditProfit(String(pool.current_profit));
     setEditParticipants(String(pool.current_participants));
     setEditSymbol(pool.traded_symbol || "");

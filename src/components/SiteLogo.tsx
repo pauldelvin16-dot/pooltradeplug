@@ -12,7 +12,7 @@ const SiteLogo = ({ className = "h-8 w-8", textClassName = "text-xl", showText =
   const logo = (settings as any)?.site_logo_url;
 
   return (
-    <div className="flex items-center gap-2 min-w-0">
+    <span className="flex items-center gap-2 min-w-0">
       {logo && (
         <img
           src={logo}
@@ -22,7 +22,7 @@ const SiteLogo = ({ className = "h-8 w-8", textClassName = "text-xl", showText =
         />
       )}
       {showText && <span className={`font-display font-bold gold-text truncate ${textClassName}`}>{label}</span>}
-    </div>
+    </span>
   );
 };
 
