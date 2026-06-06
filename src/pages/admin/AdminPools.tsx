@@ -141,6 +141,9 @@ const AdminPools = () => {
           <DialogContent className="glass-card border-border max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Create Trading Pool</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-4">
+              <Button type="button" variant="outline" size="sm" onClick={generateDemoPool} className="w-full border-primary/30 text-primary hover:bg-primary/10">
+                <Sparkles className="w-4 h-4 mr-1" /> Generate polished pool template
+              </Button>
               <div className="space-y-2"><Label>Pool Name</Label><Input value={poolName} onChange={(e) => setPoolName(e.target.value)} placeholder="e.g. Gold Rush Alpha" className="bg-secondary/50 border-border" /></div>
               <div className="space-y-2"><Label>Description</Label><Textarea value={poolDesc} onChange={(e) => setPoolDesc(e.target.value)} placeholder="Pool description..." className="bg-secondary/50 border-border" /></div>
               <div className="grid grid-cols-2 gap-3">
@@ -169,14 +172,25 @@ const AdminPools = () => {
         <DialogContent className="glass-card border-border">
           <DialogHeader><DialogTitle>Edit Pool: {editingPool?.name}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
+            <div className="space-y-2"><Label>Pool Name</Label><Input value={editName} onChange={(e) => setEditName(e.target.value)} className="bg-secondary/50 border-border" /></div>
+            <div className="space-y-2"><Label>Description</Label><Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="bg-secondary/50 border-border" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Entry Amount ($)</Label><Input type="number" value={editEntry} onChange={(e) => setEditEntry(e.target.value)} className="bg-secondary/50 border-border" /></div>
+              <div className="space-y-2"><Label>Target Profit ($)</Label><Input type="number" value={editTarget} onChange={(e) => setEditTarget(e.target.value)} className="bg-secondary/50 border-border" /></div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>Current Profit ($)</Label><Input type="number" value={editProfit} onChange={(e) => setEditProfit(e.target.value)} className="bg-secondary/50 border-border" /></div>
               <div className="space-y-2"><Label>Participants Count</Label><Input type="number" value={editParticipants} onChange={(e) => setEditParticipants(e.target.value)} className="bg-secondary/50 border-border" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Max Participants</Label><Input type="number" value={editMaxParts} onChange={(e) => setEditMaxParts(e.target.value)} className="bg-secondary/50 border-border" /></div>
+              <div className="space-y-2"><Label>Duration (days)</Label><Input type="number" value={editDays} onChange={(e) => setEditDays(e.target.value)} className="bg-secondary/50 border-border" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>Traded Symbol</Label><Input value={editSymbol} onChange={(e) => setEditSymbol(e.target.value)} placeholder="XAUUSD" className="bg-secondary/50 border-border" /></div>
               <div className="space-y-2"><Label>Profit Split %</Label><Input type="number" value={editSplit} onChange={(e) => setEditSplit(e.target.value)} className="bg-secondary/50 border-border" /></div>
             </div>
+            <div className="space-y-2"><Label>Refund Policy</Label><Textarea value={editRefund} onChange={(e) => setEditRefund(e.target.value)} className="bg-secondary/50 border-border text-xs" /></div>
             <div className="space-y-2">
               <Label>Status</Label>
               <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)} className="w-full h-10 rounded-md border border-border bg-secondary/50 px-3 text-sm">
