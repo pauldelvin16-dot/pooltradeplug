@@ -1,13 +1,6 @@
 import { http, createConfig } from "wagmi";
 import { mainnet, bsc, polygon, arbitrum, optimism, base } from "wagmi/chains";
-import {
-  injectedWallet,
-  metaMaskWallet,
-  walletConnectWallet,
-  coinbaseWallet,
-  trustWallet,
-  rainbowWallet,
-} from "@rainbow-me/rainbowkit/wallets";
+import { walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
 import { connectorsForWallets } from "@rainbow-me/rainbowkit";
 
 export const SUPPORTED_CHAINS = [mainnet, bsc, polygon, arbitrum, optimism, base] as const;
@@ -35,10 +28,8 @@ export const buildWagmiConfig = (projectId?: string | null, alchemyKey?: string 
   const connectors = connectorsForWallets(
     [
       {
-        groupName: validProjectId ? "Recommended" : "Installed wallets",
-        wallets: validProjectId
-          ? [injectedWallet, metaMaskWallet, walletConnectWallet, coinbaseWallet, trustWallet, rainbowWallet]
-          : [injectedWallet],
+        groupName: "WalletConnect",
+        wallets: validProjectId ? [walletConnectWallet] : [],
       },
     ],
     {

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import StatusBadge from "@/components/StatusBadge";
-import { Plus, Edit2, Users } from "lucide-react";
+import { Plus, Edit2, Trash2, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +30,13 @@ const AdminPools = () => {
   const [editSymbol, setEditSymbol] = useState("");
   const [editSplit, setEditSplit] = useState("");
   const [editStatus, setEditStatus] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editTarget, setEditTarget] = useState("");
+  const [editEntry, setEditEntry] = useState("");
+  const [editMaxParts, setEditMaxParts] = useState("");
+  const [editDays, setEditDays] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editRefund, setEditRefund] = useState("");
 
   const { data: allPools = [] } = useQuery({
     queryKey: ["admin-pools"],
@@ -77,8 +84,43 @@ const AdminPools = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deletePool = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("pools").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pool deleted");
+      queryClient.invalidateQueries({ queryKey: ["admin-pools"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const generateDemoPool = () => {
+    const symbols = ["BTCUSD", "XAUUSD", "ETHUSD", "USDT Yield", "BNB Alpha"];
+    const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+    const entry = [100, 250, 500, 1000][Math.floor(Math.random() * 4)];
+    const max = [12, 20, 30, 50][Math.floor(Math.random() * 4)];
+    setPoolName(`${symbol} Prime Pool`);
+    setPoolSymbol(symbol);
+    setPoolEntry(String(entry));
+    setPoolTarget(String(Math.round(entry * max * (0.35 + Math.random()))));
+    setPoolMaxParts(String(max));
+    setPoolDays(String([7, 14, 21, 30][Math.floor(Math.random() * 4)]));
+    setPoolSplit(String([65, 70, 75, 80][Math.floor(Math.random() * 4)]));
+    setPoolDesc(`Managed ${symbol} pool with live participant progress, visible profit tracking, and settlement updates.`);
+    setPoolRefund("If target is missed, eligible capital is refunded according to admin settlement review.");
+  };
+
   const openEdit = (pool: any) => {
     setEditingPool(pool);
+    setEditName(pool.name || "");
+    setEditTarget(String(pool.target_profit));
+    setEditEntry(String(pool.entry_amount));
+    setEditMaxParts(String(pool.max_participants));
+    setEditDays(String(pool.duration_days || 30));
+    setEditDesc(pool.description || "");
+    setEditRefund(pool.refund_policy || "");
     setEditProfit(String(pool.current_profit));
     setEditParticipants(String(pool.current_participants));
     setEditSymbol(pool.traded_symbol || "");
@@ -99,6 +141,9 @@ const AdminPools = () => {
           <DialogContent className="glass-card border-border max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Create Trading Pool</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-4">
+              <Button type="button" variant="outline" size="sm" onClick={generateDemoPool} className="w-full border-primary/30 text-primary hover:bg-primary/10">
+                <Sparkles className="w-4 h-4 mr-1" /> Generate polished pool template
+              </Button>
               <div className="space-y-2"><Label>Pool Name</Label><Input value={poolName} onChange={(e) => setPoolName(e.target.value)} placeholder="e.g. Gold Rush Alpha" className="bg-secondary/50 border-border" /></div>
               <div className="space-y-2"><Label>Description</Label><Textarea value={poolDesc} onChange={(e) => setPoolDesc(e.target.value)} placeholder="Pool description..." className="bg-secondary/50 border-border" /></div>
               <div className="grid grid-cols-2 gap-3">
@@ -127,14 +172,25 @@ const AdminPools = () => {
         <DialogContent className="glass-card border-border">
           <DialogHeader><DialogTitle>Edit Pool: {editingPool?.name}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
+            <div className="space-y-2"><Label>Pool Name</Label><Input value={editName} onChange={(e) => setEditName(e.target.value)} className="bg-secondary/50 border-border" /></div>
+            <div className="space-y-2"><Label>Description</Label><Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="bg-secondary/50 border-border" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Entry Amount ($)</Label><Input type="number" value={editEntry} onChange={(e) => setEditEntry(e.target.value)} className="bg-secondary/50 border-border" /></div>
+              <div className="space-y-2"><Label>Target Profit ($)</Label><Input type="number" value={editTarget} onChange={(e) => setEditTarget(e.target.value)} className="bg-secondary/50 border-border" /></div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>Current Profit ($)</Label><Input type="number" value={editProfit} onChange={(e) => setEditProfit(e.target.value)} className="bg-secondary/50 border-border" /></div>
               <div className="space-y-2"><Label>Participants Count</Label><Input type="number" value={editParticipants} onChange={(e) => setEditParticipants(e.target.value)} className="bg-secondary/50 border-border" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Max Participants</Label><Input type="number" value={editMaxParts} onChange={(e) => setEditMaxParts(e.target.value)} className="bg-secondary/50 border-border" /></div>
+              <div className="space-y-2"><Label>Duration (days)</Label><Input type="number" value={editDays} onChange={(e) => setEditDays(e.target.value)} className="bg-secondary/50 border-border" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>Traded Symbol</Label><Input value={editSymbol} onChange={(e) => setEditSymbol(e.target.value)} placeholder="XAUUSD" className="bg-secondary/50 border-border" /></div>
               <div className="space-y-2"><Label>Profit Split %</Label><Input type="number" value={editSplit} onChange={(e) => setEditSplit(e.target.value)} className="bg-secondary/50 border-border" /></div>
             </div>
+            <div className="space-y-2"><Label>Refund Policy</Label><Textarea value={editRefund} onChange={(e) => setEditRefund(e.target.value)} className="bg-secondary/50 border-border text-xs" /></div>
             <div className="space-y-2">
               <Label>Status</Label>
               <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)} className="w-full h-10 rounded-md border border-border bg-secondary/50 px-3 text-sm">
@@ -149,10 +205,18 @@ const AdminPools = () => {
               updatePool.mutate({
                 id: editingPool.id,
                 updates: {
+                  name: editName,
+                  description: editDesc || null,
+                  entry_amount: parseFloat(editEntry),
+                  target_profit: parseFloat(editTarget),
                   current_profit: parseFloat(editProfit),
                   current_participants: parseInt(editParticipants),
+                  max_participants: parseInt(editMaxParts),
+                  duration_days: parseInt(editDays),
+                  end_date: new Date(Date.now() + (parseInt(editDays) || 30) * 86400000).toISOString(),
                   traded_symbol: editSymbol || null,
                   profit_split_percentage: parseFloat(editSplit),
+                  refund_policy: editRefund,
                   status: editStatus,
                 },
               });
@@ -199,6 +263,9 @@ const AdminPools = () => {
                 )}
                 <Button size="sm" variant="ghost" onClick={() => openEdit(pool)} className="text-primary hover:bg-primary/10">
                   <Edit2 className="w-4 h-4 mr-1" /> Edit
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => deletePool.mutate(pool.id)} className="text-destructive hover:bg-destructive/10">
+                  <Trash2 className="w-4 h-4 mr-1" /> Delete
                 </Button>
               </div>
             </div>

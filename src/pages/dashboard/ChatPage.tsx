@@ -1,4 +1,5 @@
 import PoolChatRoom from "@/components/PoolChatRoom";
+import MarketWidget from "@/components/MarketWidget";
 import { useTranslation } from "react-i18next";
 
 const ChatPage = () => {
@@ -9,6 +10,7 @@ const ChatPage = () => {
         <h1 className="text-2xl md:text-3xl font-display font-bold">{t("chat.title")}</h1>
         <p className="text-sm text-muted-foreground mt-1">{t("chat.subtitle")}</p>
       </div>
+      <MarketWidget />
       <PoolChatRoom />
     </div>
   );

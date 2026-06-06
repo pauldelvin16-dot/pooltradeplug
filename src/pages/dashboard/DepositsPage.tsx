@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Copy, CheckCircle, Upload, Clock, QrCode } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Copy, CheckCircle, Clock, RefreshCw, Radar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,12 +10,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCryptoAddresses, useAdminSettings } from "@/hooks/useAdminSettings";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 
 const DepositsPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [txid, setTxid] = useState("");
-  const [amount, setAmount] = useState("");
+  const [searchParams] = useSearchParams();
+  const [amount, setAmount] = useState(searchParams.get("amount") || "");
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [activeDeposit, setActiveDeposit] = useState<any>(null);
 
@@ -60,30 +61,44 @@ const DepositsPage = () => {
     },
     onSuccess: (data) => {
       setActiveDeposit(data);
-      toast.success("Deposit session started! Send funds within the time limit.");
+      toast.success("Deposit session started — we will scan the selected network automatically.");
       queryClient.invalidateQueries({ queryKey: ["deposits"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const submitTxid = useMutation({
-    mutationFn: async () => {
-      if (!activeDeposit) return;
-      const { error } = await supabase
-        .from("deposits")
-        .update({ txid, status: "pending" as any })
-        .eq("id", activeDeposit.id);
+  const scanDeposit = useMutation({
+    mutationFn: async (depositId: string) => {
+      const { data, error } = await supabase.functions.invoke("deposit-scanner", {
+        body: { depositId },
+      });
       if (error) throw error;
+      return data as any;
     },
-    onSuccess: () => {
-      toast.success("TXID submitted! Awaiting admin confirmation.");
-      setActiveDeposit(null);
-      setTxid("");
-      setAmount("");
+    onSuccess: (data) => {
+      if (data?.confirmed) {
+        toast.success("Deposit confirmed and credited automatically.");
+        setActiveDeposit(null);
+        setAmount("");
+      } else if (data?.unsupported) {
+        toast.info(data.message || "This network is waiting for admin confirmation.");
+      }
       queryClient.invalidateQueries({ queryKey: ["deposits"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  useEffect(() => {
+    if (!activeDeposit?.id || activeDeposit.status !== "pending") return;
+    const run = () => scanDeposit.mutate(activeDeposit.id);
+    const first = setTimeout(run, 5000);
+    const interval = setInterval(run, 15000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(interval);
+    };
+  }, [activeDeposit?.id, activeDeposit?.status]);
 
   const copyAddress = (addr: string) => {
     navigator.clipboard.writeText(addr);
@@ -191,17 +206,21 @@ const DepositsPage = () => {
                 ⚠️ Only send {activeDeposit.currency} on the {activeDeposit.network} network. Sending other tokens will result in permanent loss.
               </div>
 
-              {/* TXID submission */}
-              <div className="space-y-2">
-                <Label>Transaction ID (TXID)</Label>
-                <Input placeholder="Paste your TXID after sending" value={txid} onChange={(e) => setTxid(e.target.value)} className="bg-secondary/50 border-border focus:border-primary font-mono text-xs" />
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground space-y-2">
+                <div className="flex items-center gap-2 text-primary font-semibold">
+                  <Radar className="w-4 h-4 animate-pulse" /> Automatic scan active
+                </div>
+                <p>
+                  No TXID is required. Keep this session open after sending — the platform scans {activeDeposit.network} during the countdown and credits confirmed deposits automatically.
+                </p>
               </div>
               <Button
                 className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90 h-11"
-                disabled={!txid || submitTxid.isPending}
-                onClick={() => submitTxid.mutate()}
+                disabled={scanDeposit.isPending}
+                onClick={() => scanDeposit.mutate(activeDeposit.id)}
               >
-                {submitTxid.isPending ? "Submitting..." : "Submit TXID"}
+                <RefreshCw className={`w-4 h-4 mr-2 ${scanDeposit.isPending ? "animate-spin" : ""}`} />
+                {scanDeposit.isPending ? "Scanning..." : "Scan now"}
               </Button>
             </div>
           )}

@@ -969,6 +969,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      join_pool: { Args: { _pool_id: string }; Returns: Json }
       read_chain_pk: {
         Args: { _chain_id: number; _master: string }
         Returns: {

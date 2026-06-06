@@ -8,6 +8,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ConnectWalletButton from "@/components/web3/ConnectWalletButton";
 import CryptoTicker from "@/components/CryptoTicker";
 import WalletPartners from "@/components/WalletPartners";
+import SiteLogo from "@/components/SiteLogo";
 import { useTranslation } from "react-i18next";
 
 const features = [
@@ -50,7 +51,7 @@ const Landing = () => {
       {/* Navbar */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container flex items-center justify-between h-16">
-          <h1 className="text-xl font-display font-bold gold-text">TradeLux</h1>
+          <h1><SiteLogo className="h-9 w-9" textClassName="text-xl" /></h1>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
             <a href="#pools" className="hover:text-foreground transition-colors">Pools</a>

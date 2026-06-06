@@ -1,6 +1,7 @@
 import { Home, Wallet, BarChart3, Users, User, Settings, Shield, LogOut, TrendingUp, ArrowUpRight } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import SiteLogo from "@/components/SiteLogo";
 
 const menuItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
@@ -21,9 +22,9 @@ const DashboardSidebar = () => {
   return (
     <aside className="hidden md:flex flex-col w-64 h-screen border-r border-border bg-sidebar sticky top-0">
       <div className="p-6 border-b border-border">
-        <h1 className="text-xl font-display font-bold gold-text cursor-pointer" onClick={() => navigate("/")}>
-          TradeLux
-        </h1>
+        <button className="w-full text-left" onClick={() => navigate("/")}> 
+          <SiteLogo className="h-10 w-10" textClassName="text-xl" />
+        </button>
         <p className="text-xs text-muted-foreground mt-1">
           {profile ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Trader" : "Elite Trading Platform"}
         </p>

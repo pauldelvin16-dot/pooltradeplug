@@ -1,4 +1,4 @@
-import { Home, Wallet, BarChart3, Users, MessageCircle } from "lucide-react";
+import { Home, Wallet, BarChart3, Users, MessageCircle, LogOut } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 const MobileBottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { t } = useTranslation();
 
   // Check if user is in any full active pool (chat unlock)
@@ -40,6 +40,7 @@ const MobileBottomNav = () => {
       locked: !chatUnlocked,
     },
     { icon: BarChart3, label: t("nav.mt5"), path: "/dashboard/mt5" },
+    { icon: LogOut, label: "Logout", path: "logout" },
   ];
 
   return (
@@ -55,7 +56,14 @@ const MobileBottomNav = () => {
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={async () => {
+                if (item.path === "logout") {
+                  await signOut();
+                  navigate("/");
+                  return;
+                }
+                navigate(item.path);
+              }}
               className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors ${
                 isActive
                   ? "text-primary"

@@ -11,12 +11,14 @@ import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { useNavigate } from "react-router-dom";
 
 const COLORS = ["hsl(43, 96%, 56%)", "hsl(142, 76%, 36%)", "hsl(217, 91%, 60%)", "hsl(0, 84%, 60%)"];
 
 const PoolsPage = () => {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: settings } = useAdminSettings();
   const [selectedPoolChat, setSelectedPoolChat] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState("");
@@ -82,25 +84,10 @@ const PoolsPage = () => {
 
   const joinPool = useMutation({
     mutationFn: async (pool: any) => {
-      const balance = parseFloat(profile?.balance || "0");
-      if (balance < parseFloat(pool.entry_amount)) {
-        throw new Error(`Insufficient balance. You need $${parseFloat(pool.entry_amount).toLocaleString()} to join. Your balance is $${balance.toLocaleString()}.`);
-      }
-      // Deduct balance
-      const { error: balErr } = await supabase.from("profiles").update({
-        balance: balance - parseFloat(pool.entry_amount),
-      }).eq("user_id", user!.id);
-      if (balErr) throw new Error("Failed to deduct balance");
-      
-      const { error } = await supabase.from("pool_participants").insert({
-        pool_id: pool.id, user_id: user!.id, amount_invested: parseFloat(pool.entry_amount),
-      });
+      const { data, error } = await supabase.rpc("join_pool", { _pool_id: pool.id });
       if (error) throw error;
-
-      // Increment participant count
-      await supabase.from("pools").update({
-        current_participants: pool.current_participants + 1,
-      }).eq("id", pool.id);
+      if (!(data as any)?.ok) throw new Error((data as any)?.error || "Unable to join pool");
+      return data;
     },
     onSuccess: (_data, pool: any) => {
       toast.success("Successfully joined pool! Balance deducted.");
@@ -116,6 +103,7 @@ const PoolsPage = () => {
       }
       queryClient.invalidateQueries({ queryKey: ["my-participations"] });
       queryClient.invalidateQueries({ queryKey: ["pools"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -346,7 +334,9 @@ const PoolsPage = () => {
                       {joinPool.isPending ? "Joining..." : canAfford ? "Join Pool" : "Insufficient Balance"} <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                     {!canAfford && (
-                      <p className="text-xs text-destructive">Need ${(entryAmount - userBalance).toLocaleString()} more</p>
+                      <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/deposits?amount=${Math.ceil(entryAmount - userBalance)}`)} className="border-primary/20 text-primary hover:bg-primary/10">
+                        Deposit ${(entryAmount - userBalance).toLocaleString()} more
+                      </Button>
                     )}
                   </div>
                 )}
