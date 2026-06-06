@@ -1,4 +1,4 @@
-import { TrendingUp, MessageSquare, Star, CheckCircle } from "lucide-react";
+import { TrendingUp, MessageSquare, Star, CheckCircle, ArrowUpRight } from "lucide-react";
 
 const pastPools = [
   { name: "Gold Rush Alpha", symbol: "XAUUSD", profit: 12450, entry: 500, participants: 25, split: 70, duration: "14 days", date: "Mar 2026" },
@@ -15,6 +15,12 @@ const testimonials = [
   { name: "Lisa T.", profit: "$12,640", pool: "Oil Surge", text: "The oil surge pool was legendary. 80% profit split and the trade execution was flawless. Already waiting for the next one!", avatar: "LT", rating: 5 },
   { name: "Michael O.", profit: "$15,470", pool: "Crypto Wave", text: "Joined the ETH pool with $2,000. The team rode the wave perfectly. Got $15,470 back. This platform is the real deal.", avatar: "MO", rating: 5 },
   { name: "Aisha N.", profit: "$2,100", pool: "Gold Rush Alpha", text: "First time doing pool trading and I'm hooked. The transparency and profit tracking in real-time was amazing.", avatar: "AN", rating: 4 },
+];
+
+const payouts = [
+  { trader: "James K.", amount: "$3,420", method: "USDT", pool: "Gold Rush Alpha", status: "Paid" },
+  { trader: "Sarah M.", amount: "$6,150", method: "USDT", pool: "BTC Momentum", status: "Paid" },
+  { trader: "Lisa T.", amount: "$12,640", method: "Bank/USDT", pool: "Oil Surge", status: "Paid" },
 ];
 
 const SimulatedPoolHistory = () => {
@@ -45,6 +51,25 @@ const SimulatedPoolHistory = () => {
                 <p className="text-sm font-bold text-success">+${pool.profit.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">${pool.entry} entry</p>
               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="glass-card p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <ArrowUpRight className="w-5 h-5 text-primary" />
+          <h3 className="font-semibold">Recent Pool Payouts</h3>
+        </div>
+        <div className="grid md:grid-cols-3 gap-3">
+          {payouts.map((p) => (
+            <div key={`${p.trader}-${p.pool}`} className="rounded-lg bg-secondary/30 border border-border/50 p-4">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <p className="text-sm font-medium">{p.trader}</p>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/20">{p.status}</span>
+              </div>
+              <p className="text-lg font-bold text-success">{p.amount}</p>
+              <p className="text-xs text-muted-foreground">{p.pool} · {p.method}</p>
             </div>
           ))}
         </div>

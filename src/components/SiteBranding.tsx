@@ -28,6 +28,23 @@ const SiteBranding = () => {
         addIcon("icon", "32x32");
         addIcon("icon", "192x192");
         addIcon("apple-touch-icon", "180x180");
+        document.querySelectorAll('link[rel="manifest"]').forEach((el) => el.remove());
+        const manifest = {
+          name: "TradeLux",
+          short_name: "TradeLux",
+          start_url: "/",
+          display: "standalone",
+          background_color: "#0a0d14",
+          theme_color: "#0a0d14",
+          icons: [
+            { src: favicon, sizes: "192x192", type: favicon.endsWith(".svg") ? "image/svg+xml" : "image/png" },
+            { src: favicon, sizes: "512x512", type: favicon.endsWith(".svg") ? "image/svg+xml" : "image/png" },
+          ],
+        };
+        const manifestLink = document.createElement("link");
+        manifestLink.rel = "manifest";
+        manifestLink.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" }));
+        document.head.appendChild(manifestLink);
 
         // Open Graph + Twitter image fallback so SEO uses the configured logo
         const setMeta = (name: string, attr: "name" | "property", val: string) => {
