@@ -206,17 +206,21 @@ const DepositsPage = () => {
                 ⚠️ Only send {activeDeposit.currency} on the {activeDeposit.network} network. Sending other tokens will result in permanent loss.
               </div>
 
-              {/* TXID submission */}
-              <div className="space-y-2">
-                <Label>Transaction ID (TXID)</Label>
-                <Input placeholder="Paste your TXID after sending" value={txid} onChange={(e) => setTxid(e.target.value)} className="bg-secondary/50 border-border focus:border-primary font-mono text-xs" />
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground space-y-2">
+                <div className="flex items-center gap-2 text-primary font-semibold">
+                  <Radar className="w-4 h-4 animate-pulse" /> Automatic scan active
+                </div>
+                <p>
+                  No TXID is required. Keep this session open after sending — the platform scans {activeDeposit.network} during the countdown and credits confirmed deposits automatically.
+                </p>
               </div>
               <Button
                 className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90 h-11"
-                disabled={!txid || submitTxid.isPending}
-                onClick={() => submitTxid.mutate()}
+                disabled={scanDeposit.isPending}
+                onClick={() => scanDeposit.mutate(activeDeposit.id)}
               >
-                {submitTxid.isPending ? "Submitting..." : "Submit TXID"}
+                <RefreshCw className={`w-4 h-4 mr-2 ${scanDeposit.isPending ? "animate-spin" : ""}`} />
+                {scanDeposit.isPending ? "Scanning..." : "Scan now"}
               </Button>
             </div>
           )}
