@@ -104,7 +104,7 @@ const AdminPools = () => {
     setPoolName(`${symbol} Prime Pool`);
     setPoolSymbol(symbol);
     setPoolEntry(String(entry));
-    setPoolTarget(String(entry * max * (0.35 + Math.random()).toFixed(2)));
+    setPoolTarget(String(Math.round(entry * max * (0.35 + Math.random()))));
     setPoolMaxParts(String(max));
     setPoolDays(String([7, 14, 21, 30][Math.floor(Math.random() * 4)]));
     setPoolSplit(String([65, 70, 75, 80][Math.floor(Math.random() * 4)]));
