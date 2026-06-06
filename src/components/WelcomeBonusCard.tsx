@@ -6,11 +6,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Gift, Sparkles, Clock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
 
 const WelcomeBonusCard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [now, setNow] = useState(Date.now());
+  const [depositPromptOpen, setDepositPromptOpen] = useState(false);
 
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
 
@@ -63,6 +67,10 @@ const WelcomeBonusCard = () => {
   const progress = Math.min(100, (deposits / Math.max(1, minDeposit)) * 100);
 
   const claimNow = async () => {
+    if (!eligible) {
+      setDepositPromptOpen(true);
+      return;
+    }
     const { data, error } = await supabase.rpc("claim_welcome_bonus");
     if (error) return toast.error(error.message);
     if ((data as any)?.ok) {
@@ -76,7 +84,6 @@ const WelcomeBonusCard = () => {
 
   return (
     <Card className="glass-card p-5 relative overflow-hidden border-primary/30">
-      <div className="absolute -top-12 -right-12 w-40 h-40 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
       <div className="flex items-start gap-4 relative">
         <div className="w-12 h-12 rounded-xl gold-gradient flex items-center justify-center shrink-0">
           <Gift className="w-6 h-6 text-primary-foreground" />
@@ -103,17 +110,38 @@ const WelcomeBonusCard = () => {
             </div>
           ) : (
             <div className="mt-3 flex items-center gap-3 flex-wrap">
-              <Button size="sm" onClick={claimNow} disabled={!eligible} className="gold-gradient text-primary-foreground font-semibold">
+              <Button size="sm" onClick={claimNow} className="gold-gradient text-primary-foreground font-semibold">
                 {eligible ? "Claim now" : "Deposit to unlock"}
               </Button>
               <div className="flex items-center gap-1 text-xs text-muted-foreground font-mono">
                 <Clock className="w-3 h-3 text-primary" />
-                {String(hh).padStart(2,"0")}:{String(mm).padStart(2,"0")}:{String(ss).padStart(2,"0")} until reset
+                {String(hh).padStart(2,"0")}:{String(mm).padStart(2,"0")}:{String(ss).padStart(2,"0")}
               </div>
             </div>
           )}
         </div>
       </div>
+      <Dialog open={depositPromptOpen} onOpenChange={setDepositPromptOpen}>
+        <DialogContent className="glass-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Deposit required</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Make a confirmed deposit of ${minDeposit}+ to unlock your ${amount} USDT welcome bonus.
+            </p>
+            <Button
+              className="w-full gold-gradient text-primary-foreground font-semibold"
+              onClick={() => {
+                setDepositPromptOpen(false);
+                navigate(`/dashboard/deposits?amount=${minDeposit}`);
+              }}
+            >
+              Go to deposit
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

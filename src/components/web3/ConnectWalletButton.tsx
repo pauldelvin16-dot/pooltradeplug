@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Wallet, ChevronDown, LogOut, Copy, RefreshCw, AlertTriangle, Smartphone, Monitor } from "lucide-react";
+import { Wallet, ChevronDown, LogOut, Copy, RefreshCw, AlertTriangle, Smartphone } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
@@ -26,22 +26,6 @@ const detectDevice = () => {
   return "Desktop";
 };
 
-const detectInstalledWallets = () => {
-  const eth = (window as any).ethereum;
-  const providers = eth?.providers?.length ? eth.providers : eth ? [eth] : [];
-  const names = new Set<string>();
-  providers.forEach((p: any) => {
-    if (p?.isMetaMask) names.add("MetaMask");
-    if (p?.isCoinbaseWallet) names.add("Coinbase");
-    if (p?.isTrust || p?.isTrustWallet) names.add("Trust Wallet");
-    if (p?.isRabby) names.add("Rabby");
-    if (p?.isBraveWallet) names.add("Brave Wallet");
-    if (p?.isPhantom) names.add("Phantom");
-  });
-  if (!names.size && providers.length) names.add("Browser wallet");
-  return Array.from(names);
-};
-
 const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) => {
   const { user, loading: authLoading } = useAuth();
   const { data: settings } = useAdminSettings();
@@ -56,7 +40,6 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
 
   const projectIdValid = /^[a-f0-9]{32}$/i.test(settings?.web3_project_id || "");
   const web3Ready = settings?.web3_enabled !== false && projectIdValid;
-  const installedWallets = useMemo(() => detectInstalledWallets(), [hydrated]);
   const isMobileDevice = useMemo(() => /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || ""), []);
 
   useEffect(() => {
@@ -176,9 +159,6 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
                 <span className="hidden xs:inline sm:inline">{handshake.state === "pending" ? "Opening…" : "Connect Wallet"}</span>
                 <span className="xs:hidden sm:hidden">{handshake.state === "pending" ? "…" : "Connect"}</span>
               </Button>
-              {!isMobileDevice && installedWallets.length > 0 && handshake.state === "idle" && (
-                <span className="hidden lg:inline-flex items-center gap-1 text-[11px] text-muted-foreground max-w-[180px] truncate"><Monitor className="w-3 h-3" /> {installedWallets.join(", ")}</span>
-              )}
               {handshake.state === "error" && (
                 <button
                   type="button"
