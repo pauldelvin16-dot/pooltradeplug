@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/StatusBadge";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, Radar } from "lucide-react";
 import { toast } from "sonner";
 
 const AdminDeposits = () => {
@@ -45,7 +45,9 @@ const AdminDeposits = () => {
                 <StatusBadge status={d.status} />
               </div>
               <p className="text-lg font-bold gold-text">${parseFloat(d.amount).toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground mt-1 font-mono">TXID: {d.txid || "—"}</p>
+              <p className="text-xs text-muted-foreground mt-1 font-mono flex items-center gap-1">
+                <Radar className="w-3 h-3 text-primary" /> {d.txid ? `Detected TX: ${d.txid}` : "Auto-scan / manual approval"}
+              </p>
               <p className="text-xs text-muted-foreground">{d.network} · {new Date(d.created_at).toLocaleString()}</p>
             </div>
             {d.status === "pending" && (
