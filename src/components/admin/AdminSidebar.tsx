@@ -9,6 +9,7 @@ import {
   SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
+import SiteLogo from "@/components/SiteLogo";
 
 const items = [
   { title: "Overview", url: "/admin", icon: Eye },
@@ -41,7 +42,7 @@ const AdminSidebar = () => {
         <SidebarGroup>
           <SidebarGroupLabel>
             {!collapsed && (
-              <span className="gold-text font-display font-bold text-base">TradeLux Admin</span>
+              <SiteLogo className="h-7 w-7" textClassName="text-base" label="TradeLux Admin" />
             )}
           </SidebarGroupLabel>
           <SidebarGroupContent>
