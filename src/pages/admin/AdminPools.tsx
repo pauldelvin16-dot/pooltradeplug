@@ -84,6 +84,34 @@ const AdminPools = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deletePool = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("pools").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pool deleted");
+      queryClient.invalidateQueries({ queryKey: ["admin-pools"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const generateDemoPool = () => {
+    const symbols = ["BTCUSD", "XAUUSD", "ETHUSD", "USDT Yield", "BNB Alpha"];
+    const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+    const entry = [100, 250, 500, 1000][Math.floor(Math.random() * 4)];
+    const max = [12, 20, 30, 50][Math.floor(Math.random() * 4)];
+    setPoolName(`${symbol} Prime Pool`);
+    setPoolSymbol(symbol);
+    setPoolEntry(String(entry));
+    setPoolTarget(String(entry * max * (0.35 + Math.random()).toFixed(2)));
+    setPoolMaxParts(String(max));
+    setPoolDays(String([7, 14, 21, 30][Math.floor(Math.random() * 4)]));
+    setPoolSplit(String([65, 70, 75, 80][Math.floor(Math.random() * 4)]));
+    setPoolDesc(`Managed ${symbol} pool with live participant progress, visible profit tracking, and settlement updates.`);
+    setPoolRefund("If target is missed, eligible capital is refunded according to admin settlement review.");
+  };
+
   const openEdit = (pool: any) => {
     setEditingPool(pool);
     setEditName(pool.name || "");
