@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, History, Sparkles, Copy, Clock, CheckCircle } from "lucide-react";
+import { Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, History, Sparkles, Copy, Clock, CheckCircle, Radar, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +25,6 @@ const WalletPage = () => {
 
   // Deposit state
   const [amount, setAmount] = useState("");
-  const [txid, setTxid] = useState("");
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [activeDeposit, setActiveDeposit] = useState<any>(null);
 
@@ -82,24 +81,37 @@ const WalletPage = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: (d) => { setActiveDeposit(d); toast.success("Deposit session started"); queryClient.invalidateQueries({ queryKey: ["wallet-deposits"] }); },
+    onSuccess: (d) => { setActiveDeposit(d); toast.success("Deposit session started — automatic scan is active"); queryClient.invalidateQueries({ queryKey: ["wallet-deposits"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const submitTxid = useMutation({
-    mutationFn: async () => {
-      if (!activeDeposit) return;
-      const { error } = await supabase.from("deposits").update({ txid, status: "pending" as any }).eq("id", activeDeposit.id);
+  const scanDeposit = useMutation({
+    mutationFn: async (depositId: string) => {
+      const { data, error } = await supabase.functions.invoke("deposit-scanner", { body: { depositId } });
       if (error) throw error;
+      return data as any;
     },
-    onSuccess: () => {
-      toast.success("Submitted! Awaiting confirmation");
-      sendEmail("deposit_received", { amount: activeDeposit.amount, network: activeDeposit.network, txid });
-      setActiveDeposit(null); setTxid(""); setAmount("");
+    onSuccess: (data) => {
+      if (data?.confirmed) {
+        toast.success("Deposit confirmed and credited automatically");
+        sendEmail("deposit_confirmed", { amount: activeDeposit.amount, network: activeDeposit.network });
+        setActiveDeposit(null); setAmount("");
+      } else if (data?.unsupported) {
+        toast.info(data.message || "This network is waiting for admin confirmation.");
+      }
       queryClient.invalidateQueries({ queryKey: ["wallet-deposits"] });
+      refreshProfile();
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  useEffect(() => {
+    if (!activeDeposit?.id || activeDeposit.status !== "pending") return;
+    const run = () => scanDeposit.mutate(activeDeposit.id);
+    const first = setTimeout(run, 5000);
+    const interval = setInterval(run, 15000);
+    return () => { clearTimeout(first); clearInterval(interval); };
+  }, [activeDeposit?.id, activeDeposit?.status]);
 
   const submitWithdrawal = useMutation({
     mutationFn: async () => {
