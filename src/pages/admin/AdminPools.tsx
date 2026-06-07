@@ -251,26 +251,58 @@ const AdminPools = () => {
                   {(pool as any).profit_split_percentage || 70}% split
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {pool.status === "active" && (
+                  <Button size="sm" variant="outline" className="text-warning border-warning/40 hover:bg-warning/10"
+                    onClick={() => updatePool.mutate({ id: pool.id, updates: { status: "paused" } })}>
+                    <Pause className="w-4 h-4 mr-1" /> Pause
+                  </Button>
+                )}
+                {pool.status === "paused" && (
+                  <Button size="sm" variant="outline" className="text-success border-success/40 hover:bg-success/10"
+                    onClick={() => updatePool.mutate({ id: pool.id, updates: { status: "active" } })}>
+                    <Play className="w-4 h-4 mr-1" /> Resume
+                  </Button>
+                )}
+                {pool.status === "draft" && (
+                  <Button size="sm" variant="outline" className="text-success border-success/40 hover:bg-success/10"
+                    onClick={() => updatePool.mutate({ id: pool.id, updates: { status: "active" } })}>
+                    <Play className="w-4 h-4 mr-1" /> Publish
+                  </Button>
+                )}
                 {pool.status === "active" && pool.current_participants < pool.max_participants && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-success border-success/40 hover:bg-success/10"
-                    onClick={() => updatePool.mutate({
-                      id: pool.id,
-                      updates: { current_participants: pool.max_participants },
-                    })}
-                  >
+                  <Button size="sm" variant="outline" className="text-success border-success/40 hover:bg-success/10"
+                    onClick={() => updatePool.mutate({ id: pool.id, updates: { current_participants: pool.max_participants } })}>
                     🚀 Force Start
                   </Button>
                 )}
                 <Button size="sm" variant="ghost" onClick={() => openEdit(pool)} className="text-primary hover:bg-primary/10">
                   <Edit2 className="w-4 h-4 mr-1" /> Edit
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => deletePool.mutate(pool.id)} className="text-destructive hover:bg-destructive/10">
-                  <Trash2 className="w-4 h-4 mr-1" /> Delete
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10">
+                      <Trash2 className="w-4 h-4 mr-1" /> Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="glass-card border-border">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete pool "{pool.name}"?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This archives the pool (status = deleted) and hides it from users immediately. Existing participants keep their records. Use Edit → status to restore.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => updatePool.mutate({ id: pool.id, updates: { status: "deleted" } })} className="bg-destructive text-destructive-foreground">
+                        Archive pool
+                      </AlertDialogAction>
+                      <AlertDialogAction onClick={() => deletePool.mutate(pool.id)} className="bg-destructive/80 text-destructive-foreground">
+                        Permanently delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           ))
