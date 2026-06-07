@@ -44,6 +44,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <Web3ErrorBoundary>
       <Web3Provider>
       <TooltipProvider>
         <Toaster />
