@@ -195,10 +195,13 @@ const AdminPools = () => {
             <div className="space-y-2">
               <Label>Status</Label>
               <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)} className="w-full h-10 rounded-md border border-border bg-secondary/50 px-3 text-sm">
-                <option value="active">Active</option>
+                <option value="draft">Draft (hidden from users)</option>
+                <option value="active">Active (open to join)</option>
+                <option value="paused">Paused (visible, withdrawals locked)</option>
                 <option value="completed">Completed</option>
                 <option value="failed">Failed</option>
                 <option value="cancelled">Cancelled</option>
+                <option value="deleted">Deleted (archived)</option>
               </select>
             </div>
             <Button className="w-full gold-gradient text-primary-foreground font-semibold hover:opacity-90" onClick={() => {
