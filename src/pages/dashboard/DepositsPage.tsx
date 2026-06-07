@@ -53,7 +53,7 @@ const DepositsPage = () => {
         .from("deposits")
         .insert({
           user_id: user!.id,
-          amount: invoiceAmount,
+          amount: invoiceAmount as any,
           crypto_address_id: selectedAddress.id,
           network: selectedAddress.network,
           currency: selectedAddress.currency,
