@@ -88,6 +88,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
       </Web3Provider>
+      </Web3ErrorBoundary>
     </AuthProvider>
   </QueryClientProvider>
 );
