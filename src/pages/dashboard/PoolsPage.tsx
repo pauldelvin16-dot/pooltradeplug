@@ -27,7 +27,7 @@ const PoolsPage = () => {
   const { data: pools = [] } = useQuery({
     queryKey: ["pools"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("pools").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("pools").select("*").not("status", "in", "(draft,deleted)").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
