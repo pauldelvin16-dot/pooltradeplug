@@ -407,6 +407,7 @@ const PoolsPage = () => {
                     </div>
                   );
                 })()}
+                {isFull && !hasJoined && pool.status === "active" && <p className="text-sm text-muted-foreground">Pool is full</p>}
                 
                 {chatEnabled && (
                   <Button
