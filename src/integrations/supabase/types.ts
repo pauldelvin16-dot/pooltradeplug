@@ -506,6 +506,7 @@ export type Database = {
           amount_invested: number
           id: string
           joined_at: string
+          payout_status: string
           pool_id: string
           profit_share: number | null
           user_id: string
@@ -514,6 +515,7 @@ export type Database = {
           amount_invested: number
           id?: string
           joined_at?: string
+          payout_status?: string
           pool_id: string
           profit_share?: number | null
           user_id: string
@@ -522,6 +524,7 @@ export type Database = {
           amount_invested?: number
           id?: string
           joined_at?: string
+          payout_status?: string
           pool_id?: string
           profit_share?: number | null
           user_id?: string
@@ -962,6 +965,7 @@ export type Database = {
     }
     Functions: {
       claim_welcome_bonus: { Args: never; Returns: Json }
+      expire_old_deposits: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -977,6 +981,7 @@ export type Database = {
           private_key: string
         }[]
       }
+      request_pool_payout: { Args: { _pool_id: string }; Returns: Json }
       reset_welcome_bonus_cycle: { Args: never; Returns: undefined }
       upsert_chain_key: {
         Args: {

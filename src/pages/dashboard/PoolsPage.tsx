@@ -37,11 +37,40 @@ const PoolsPage = () => {
   const { data: myParticipations = [] } = useQuery({
     queryKey: ["my-participations", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("pool_participants").select("pool_id").eq("user_id", user!.id);
+      const { data, error } = await supabase.from("pool_participants").select("pool_id, payout_status, profit_share, amount_invested").eq("user_id", user!.id);
       if (error) throw error;
       return data;
     },
     enabled: !!user,
+  });
+
+  // Realtime: refresh pools list + participations when admin changes status, participants, or payout flags
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel("pools-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pools" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["pools"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "pool_participants", filter: `user_id=eq.${user.id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ["my-participations"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, queryClient]);
+
+  const requestPayout = useMutation({
+    mutationFn: async (poolId: string) => {
+      const { data, error } = await supabase.rpc("request_pool_payout", { _pool_id: poolId });
+      if (error) throw error;
+      if (!(data as any)?.ok) throw new Error((data as any)?.error || "Unable to request payout");
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Payout requested — admin will process shortly.");
+      queryClient.invalidateQueries({ queryKey: ["my-participations"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const { data: chatMessages = [] } = useQuery({
@@ -80,6 +109,7 @@ const PoolsPage = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
+  const participationMap = new Map<string, any>(myParticipations.map((p: any) => [p.pool_id, p]));
   const joinedPoolIds = new Set(myParticipations.map((p: any) => p.pool_id));
 
   const joinPool = useMutation({
@@ -341,6 +371,42 @@ const PoolsPage = () => {
                   </div>
                 )}
                 {hasJoined && <p className="text-sm text-success font-medium">✓ You've joined this pool</p>}
+                {hasJoined && (() => {
+                  const part = participationMap.get(pool.id);
+                  const payoutLocked = pool.status === "active" || pool.status === "paused" || pool.status === "draft";
+                  const payoutAvailable = !payoutLocked && part?.payout_status === "locked";
+                  const payoutInProgress = part?.payout_status === "in_progress";
+                  const paid = part?.payout_status === "paid";
+                  return (
+                    <div className="flex items-center gap-2">
+                      {payoutLocked && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-muted/40 border border-border text-[11px] text-muted-foreground">
+                          🔒 Payout locked
+                        </span>
+                      )}
+                      {payoutInProgress && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-warning/10 border border-warning/30 text-[11px] text-warning">
+                          ⏳ Payout in progress
+                        </span>
+                      )}
+                      {paid && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-success/10 border border-success/30 text-[11px] text-success">
+                          ✓ Paid out
+                        </span>
+                      )}
+                      {payoutAvailable && (
+                        <Button size="sm" className="gold-gradient text-primary-foreground font-semibold" disabled={requestPayout.isPending} onClick={() => requestPayout.mutate(pool.id)}>
+                          💰 Request Payout
+                        </Button>
+                      )}
+                      {!payoutLocked && (
+                        <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/withdrawals")} className="border-primary/30 text-primary hover:bg-primary/10">
+                          Withdraw to wallet
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })()}
                 {isFull && !hasJoined && pool.status === "active" && <p className="text-sm text-muted-foreground">Pool is full</p>}
                 
                 {chatEnabled && (
