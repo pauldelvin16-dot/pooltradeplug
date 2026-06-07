@@ -189,9 +189,13 @@ const DepositsPage = () => {
 
               {/* QR Code */}
               <div className="flex flex-col items-center p-4 rounded-lg bg-secondary/50 border border-border">
-                <p className="text-xs text-muted-foreground mb-3">
-                  Send <span className="text-primary font-bold">${parseFloat(activeDeposit.amount).toLocaleString()}</span> {activeDeposit.currency} ({activeDeposit.network})
-                </p>
+                <p className="text-xs text-muted-foreground mb-1">Send EXACTLY this amount on {activeDeposit.network}:</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <code className="text-lg font-mono font-bold text-primary bg-background/60 px-3 py-1 rounded">{Number(activeDeposit.amount).toFixed(4)} {activeDeposit.currency}</code>
+                  <Button size="icon" variant="ghost" onClick={() => { navigator.clipboard.writeText(Number(activeDeposit.amount).toFixed(4)); toast.success("Amount copied"); }}>
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
                 <img
                   src={qrUrl(activeDeposit.crypto_addresses?.address || "")}
                   alt="Deposit QR Code"
