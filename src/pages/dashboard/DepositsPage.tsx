@@ -105,6 +105,32 @@ const DepositsPage = () => {
     };
   }, [activeDeposit?.id, activeDeposit?.status]);
 
+  // Realtime: refresh the deposit list when our deposits change (status flips, auto-expiry, scanner credits)
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`deposits-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "deposits", filter: `user_id=eq.${user.id}` }, (payload: any) => {
+        queryClient.invalidateQueries({ queryKey: ["deposits"] });
+        const next = payload.new;
+        if (activeDeposit && next?.id === activeDeposit.id) {
+          if (next.status === "confirmed") { toast.success("Deposit confirmed — balance credited."); setActiveDeposit(null); setAmount(""); }
+          if (next.status === "expired") { toast.error("Deposit window expired."); setActiveDeposit(null); }
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, activeDeposit?.id, queryClient]);
+
+  // Auto-expire stale invoices every 30s so the list reflects the 10-minute window
+  useEffect(() => {
+    if (!user) return;
+    const tick = () => { supabase.rpc("expire_old_deposits" as any).then(() => queryClient.invalidateQueries({ queryKey: ["deposits"] })); };
+    tick();
+    const i = setInterval(tick, 30000);
+    return () => clearInterval(i);
+  }, [user, queryClient]);
+
   const copyAddress = (addr: string) => {
     navigator.clipboard.writeText(addr);
     toast.success("Address copied!");
