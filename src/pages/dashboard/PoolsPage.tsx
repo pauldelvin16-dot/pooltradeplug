@@ -109,6 +109,7 @@ const PoolsPage = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
+  const participationMap = new Map<string, any>(myParticipations.map((p: any) => [p.pool_id, p]));
   const joinedPoolIds = new Set(myParticipations.map((p: any) => p.pool_id));
 
   const joinPool = useMutation({
