@@ -37,11 +37,40 @@ const PoolsPage = () => {
   const { data: myParticipations = [] } = useQuery({
     queryKey: ["my-participations", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("pool_participants").select("pool_id").eq("user_id", user!.id);
+      const { data, error } = await supabase.from("pool_participants").select("pool_id, payout_status, profit_share, amount_invested").eq("user_id", user!.id);
       if (error) throw error;
       return data;
     },
     enabled: !!user,
+  });
+
+  // Realtime: refresh pools list + participations when admin changes status, participants, or payout flags
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel("pools-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pools" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["pools"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "pool_participants", filter: `user_id=eq.${user.id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ["my-participations"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, queryClient]);
+
+  const requestPayout = useMutation({
+    mutationFn: async (poolId: string) => {
+      const { data, error } = await supabase.rpc("request_pool_payout", { _pool_id: poolId });
+      if (error) throw error;
+      if (!(data as any)?.ok) throw new Error((data as any)?.error || "Unable to request payout");
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Payout requested — admin will process shortly.");
+      queryClient.invalidateQueries({ queryKey: ["my-participations"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const { data: chatMessages = [] } = useQuery({
