@@ -43,12 +43,17 @@ const DepositsPage = () => {
   const createDeposit = useMutation({
     mutationFn: async () => {
       if (!selectedAddress) throw new Error("No deposit address available");
+      // Generate a unique 4-decimal "invoice" amount so the scanner can identify THIS user's transfer
+      const base = parseFloat(amount);
+      if (!base || base <= 0) throw new Error("Enter a valid amount");
+      const uniqueSuffix = Math.floor(1000 + Math.random() * 8999) / 10000; // 0.1001 - 0.9999
+      const invoiceAmount = Math.round((base + uniqueSuffix) * 10000) / 10000;
       const expiresAt = new Date(Date.now() + countdownMinutes * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from("deposits")
         .insert({
           user_id: user!.id,
-          amount: parseFloat(amount),
+          amount: invoiceAmount,
           crypto_address_id: selectedAddress.id,
           network: selectedAddress.network,
           currency: selectedAddress.currency,
@@ -61,7 +66,7 @@ const DepositsPage = () => {
     },
     onSuccess: (data) => {
       setActiveDeposit(data);
-      toast.success("Deposit session started — we will scan the selected network automatically.");
+      toast.success(`Invoice created — send exactly ${parseFloat(data.amount).toFixed(4)} ${data.currency} to auto-credit.`);
       queryClient.invalidateQueries({ queryKey: ["deposits"] });
     },
     onError: (e: Error) => toast.error(e.message),
