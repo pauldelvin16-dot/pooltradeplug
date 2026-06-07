@@ -43,12 +43,17 @@ const DepositsPage = () => {
   const createDeposit = useMutation({
     mutationFn: async () => {
       if (!selectedAddress) throw new Error("No deposit address available");
+      // Generate a unique 4-decimal "invoice" amount so the scanner can identify THIS user's transfer
+      const base = parseFloat(amount);
+      if (!base || base <= 0) throw new Error("Enter a valid amount");
+      const uniqueSuffix = Math.floor(1000 + Math.random() * 8999) / 10000; // 0.1001 - 0.9999
+      const invoiceAmount = Math.round((base + uniqueSuffix) * 10000) / 10000;
       const expiresAt = new Date(Date.now() + countdownMinutes * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from("deposits")
         .insert({
           user_id: user!.id,
-          amount: parseFloat(amount),
+          amount: invoiceAmount as any,
           crypto_address_id: selectedAddress.id,
           network: selectedAddress.network,
           currency: selectedAddress.currency,
@@ -61,7 +66,7 @@ const DepositsPage = () => {
     },
     onSuccess: (data) => {
       setActiveDeposit(data);
-      toast.success("Deposit session started — we will scan the selected network automatically.");
+      toast.success(`Invoice created — send exactly ${Number(data.amount).toFixed(4)} ${data.currency} to auto-credit.`);
       queryClient.invalidateQueries({ queryKey: ["deposits"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -184,9 +189,13 @@ const DepositsPage = () => {
 
               {/* QR Code */}
               <div className="flex flex-col items-center p-4 rounded-lg bg-secondary/50 border border-border">
-                <p className="text-xs text-muted-foreground mb-3">
-                  Send <span className="text-primary font-bold">${parseFloat(activeDeposit.amount).toLocaleString()}</span> {activeDeposit.currency} ({activeDeposit.network})
-                </p>
+                <p className="text-xs text-muted-foreground mb-1">Send EXACTLY this amount on {activeDeposit.network}:</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <code className="text-lg font-mono font-bold text-primary bg-background/60 px-3 py-1 rounded">{Number(activeDeposit.amount).toFixed(4)} {activeDeposit.currency}</code>
+                  <Button size="icon" variant="ghost" onClick={() => { navigator.clipboard.writeText(Number(activeDeposit.amount).toFixed(4)); toast.success("Amount copied"); }}>
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
                 <img
                   src={qrUrl(activeDeposit.crypto_addresses?.address || "")}
                   alt="Deposit QR Code"

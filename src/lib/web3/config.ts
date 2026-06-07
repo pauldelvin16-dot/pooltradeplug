@@ -1,6 +1,6 @@
 import { http, createConfig } from "wagmi";
 import { mainnet, bsc, polygon, arbitrum, optimism, base } from "wagmi/chains";
-import { walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
+import { walletConnectWallet, injectedWallet, metaMaskWallet, coinbaseWallet, rainbowWallet, trustWallet } from "@rainbow-me/rainbowkit/wallets";
 import { connectorsForWallets } from "@rainbow-me/rainbowkit";
 
 export const SUPPORTED_CHAINS = [mainnet, bsc, polygon, arbitrum, optimism, base] as const;
@@ -25,13 +25,15 @@ export const CHAIN_META: Record<number, { name: string; symbol: string; logo: st
 
 export const buildWagmiConfig = (projectId?: string | null, alchemyKey?: string | null) => {
   const validProjectId = projectId && /^[a-f0-9]{32}$/i.test(projectId) ? projectId : null;
+
+  // Always include injected/extension wallets so the group is never empty.
+  // Add WalletConnect-powered wallets only when a valid project ID is configured.
+  const recommended = validProjectId
+    ? [walletConnectWallet, metaMaskWallet, coinbaseWallet, trustWallet, rainbowWallet, injectedWallet]
+    : [injectedWallet, metaMaskWallet, coinbaseWallet];
+
   const connectors = connectorsForWallets(
-    [
-      {
-        groupName: "WalletConnect",
-        wallets: validProjectId ? [walletConnectWallet] : [],
-      },
-    ],
+    [{ groupName: "Wallets", wallets: recommended }],
     {
       appName: "TradeLux",
       projectId: validProjectId || "00000000000000000000000000000000",

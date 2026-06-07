@@ -91,7 +91,9 @@ Deno.serve(async (req) => {
       const ts = tx.metadata?.blockTimestamp ? new Date(tx.metadata.blockTimestamp).getTime() : 0;
       const asset = String(tx.asset || "").toUpperCase();
       const value = Number(tx.value || 0);
-      return ts >= start && ts <= end && value >= expected * 0.995 && (asset === currency || (currency === "USDT" && ["USDT", "USDC"].includes(asset)));
+      // Match the UNIQUE invoice amount tightly so we identify this user's transfer without a TXID.
+      const exact = Math.abs(value - expected) <= 0.0005;
+      return ts >= start && ts <= end && exact && (asset === currency || (currency === "USDT" && ["USDT", "USDC"].includes(asset)));
     });
 
     if (!match) return json({ ok: true, confirmed: false, scanned: true, message: "No matching transfer detected yet" });
