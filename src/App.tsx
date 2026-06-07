@@ -32,6 +32,7 @@ import AdminTelegram from "./pages/admin/AdminTelegram";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminWallets from "./pages/admin/AdminWallets";
 import { Web3Provider } from "@/lib/web3/Web3Provider";
+import { Web3ErrorBoundary } from "@/lib/web3/Web3ErrorBoundary";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import RiskPage from "./pages/RiskPage";
