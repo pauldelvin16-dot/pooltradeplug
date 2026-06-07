@@ -371,7 +371,42 @@ const PoolsPage = () => {
                   </div>
                 )}
                 {hasJoined && <p className="text-sm text-success font-medium">✓ You've joined this pool</p>}
-                {isFull && !hasJoined && pool.status === "active" && <p className="text-sm text-muted-foreground">Pool is full</p>}
+                {hasJoined && (() => {
+                  const part = participationMap.get(pool.id);
+                  const payoutLocked = pool.status === "active" || pool.status === "paused" || pool.status === "draft";
+                  const payoutAvailable = !payoutLocked && part?.payout_status === "locked";
+                  const payoutInProgress = part?.payout_status === "in_progress";
+                  const paid = part?.payout_status === "paid";
+                  return (
+                    <div className="flex items-center gap-2">
+                      {payoutLocked && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-muted/40 border border-border text-[11px] text-muted-foreground">
+                          🔒 Payout locked
+                        </span>
+                      )}
+                      {payoutInProgress && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-warning/10 border border-warning/30 text-[11px] text-warning">
+                          ⏳ Payout in progress
+                        </span>
+                      )}
+                      {paid && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-success/10 border border-success/30 text-[11px] text-success">
+                          ✓ Paid out
+                        </span>
+                      )}
+                      {payoutAvailable && (
+                        <Button size="sm" className="gold-gradient text-primary-foreground font-semibold" disabled={requestPayout.isPending} onClick={() => requestPayout.mutate(pool.id)}>
+                          💰 Request Payout
+                        </Button>
+                      )}
+                      {!payoutLocked && (
+                        <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/withdrawals")} className="border-primary/30 text-primary hover:bg-primary/10">
+                          Withdraw to wallet
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })()}
                 
                 {chatEnabled && (
                   <Button
