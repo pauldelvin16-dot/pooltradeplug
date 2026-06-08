@@ -29,8 +29,8 @@ export const buildWagmiConfig = (projectId?: string | null, alchemyKey?: string 
   // Discovery strategy: rely on `injectedWallet` (EIP-6963) so ONLY wallets actually
   // installed in the browser/in-app webview appear in the modal — no "Get" promos.
   // WalletConnect is the universal mobile/QR fallback (added only when project ID is valid).
-  const installed = [injectedWallet];
-  const groups = [{ groupName: "Installed", wallets: installed }];
+  const installed: any[] = [injectedWallet];
+  const groups: any[] = [{ groupName: "Installed", wallets: installed }];
   if (validProjectId) {
     groups.push({ groupName: "WalletConnect", wallets: [walletConnectWallet] });
   }
