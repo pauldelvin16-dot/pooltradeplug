@@ -42,10 +42,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
   const projectIdValid = /^[a-f0-9]{32}$/i.test(settings?.web3_project_id || "");
   const web3Ready = settings?.web3_enabled !== false && projectIdValid;
   const isMobileDevice = useMemo(() => /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || ""), []);
-  const hasInjectedProvider = useMemo(() => {
-    discoveryTick;
-    return typeof window !== "undefined" && !!(window as any).ethereum;
-  }, [discoveryTick]);
+  const hasInjectedProvider = typeof window !== "undefined" && !!(window as { ethereum?: unknown }).ethereum;
   const noReadyWallets = !hasInjectedProvider && !web3Ready;
   const discoveryLabel = hasInjectedProvider
     ? "Installed wallet detected"
@@ -69,7 +66,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
           setHandshake({ state: "error", message: "Handshake timed out — wallet did not return a session.", at: Date.now() });
           if (isMobileDevice && retryAttempts.current < 1) {
             retryAttempts.current += 1;
-            try { resetConnect(); } catch (_) {}
+            try { resetConnect(); } catch { console.debug("Wallet reset ignored"); }
             toast.message("Retrying wallet handshake…");
           }
         }
@@ -181,7 +178,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
               {(handshake.state === "error" || noReadyWallets) && (
                 <button
                   type="button"
-                  onClick={() => { try { resetConnect(); } catch (_) {} setDiscoveryTick((n) => n + 1); setHandshake({ state: "idle" }); if (!noReadyWallets) openConnectModal(); }}
+                  onClick={() => { try { resetConnect(); } catch { console.debug("Wallet reset ignored"); } setDiscoveryTick((n) => n + 1); setHandshake({ state: "idle" }); if (!noReadyWallets) openConnectModal(); }}
                   title={handshake.message || discoveryLabel}
                   className="inline-flex items-center gap-1 text-[11px] text-destructive max-w-[240px] truncate"
                 >
