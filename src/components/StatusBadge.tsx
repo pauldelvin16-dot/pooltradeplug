@@ -1,5 +1,5 @@
 interface StatusBadgeProps {
-  status: "available" | "assigned" | "disabled" | "pending" | "confirmed" | "rejected" | "active" | "completed" | "failed";
+  status: "available" | "assigned" | "disabled" | "pending" | "confirmed" | "rejected" | "active" | "completed" | "failed" | "expired" | "paused" | "draft" | "deleted" | "cancelled";
 }
 
 const StatusBadge = ({ status }: StatusBadgeProps) => {
@@ -10,8 +10,13 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
     pending: "bg-warning/15 text-warning border-warning/30",
     confirmed: "bg-success/15 text-success border-success/30",
     rejected: "bg-destructive/15 text-destructive border-destructive/30",
+    expired: "bg-destructive/15 text-destructive border-destructive/30",
     active: "bg-primary/15 text-primary border-primary/30",
+    paused: "bg-warning/15 text-warning border-warning/30",
+    draft: "bg-muted text-muted-foreground border-border",
+    deleted: "bg-destructive/15 text-destructive border-destructive/30",
     completed: "bg-success/15 text-success border-success/30",
+    cancelled: "bg-muted text-muted-foreground border-border",
     failed: "bg-destructive/15 text-destructive border-destructive/30",
   };
 
@@ -20,8 +25,8 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
       <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
         ["available", "confirmed", "completed"].includes(status) ? "bg-success" :
         ["assigned", "active"].includes(status) ? "bg-primary" :
-        ["pending"].includes(status) ? "bg-warning" :
-        ["rejected", "failed"].includes(status) ? "bg-destructive" : "bg-muted-foreground"
+        ["pending", "paused"].includes(status) ? "bg-warning" :
+        ["rejected", "failed", "expired", "deleted"].includes(status) ? "bg-destructive" : "bg-muted-foreground"
       }`} />
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>

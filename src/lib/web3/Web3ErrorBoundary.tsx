@@ -18,7 +18,7 @@ export class Web3ErrorBoundary extends React.Component<{ children: React.ReactNo
       return (
         <>
           <div className="fixed top-2 inset-x-2 z-[100] glass-card border border-destructive/40 bg-destructive/10 text-destructive text-xs px-3 py-2 rounded-md shadow-lg max-w-xl mx-auto">
-            ⚠️ Wallet connection module is misconfigured ({this.state.message}). The app stays usable — admin should set a valid WalletConnect Project ID in Admin → Web3 Wallets.
+            ⚠️ Wallet connection module could not load ({this.state.message}). The app stays usable — retry wallet discovery or check WalletConnect allowed domains in Admin → Web3 Wallets.
           </div>
           {this.props.children}
         </>

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Gift, Sparkles, Clock, CheckCircle2 } from "lucide-react";
+import { Gift, Sparkles, Clock, CheckCircle2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
@@ -51,9 +51,24 @@ const WelcomeBonusCard = () => {
     },
   });
 
+  const minDeposit = Number(settings?.welcome_bonus_min_deposit || 0);
+
+  const { data: confirmedDeposits = [] } = useQuery({
+    queryKey: ["welcome-confirmed-deposits", user?.id, minDeposit],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase.from("deposits")
+        .select("amount, currency, network, created_at")
+        .eq("user_id", user!.id)
+        .eq("status", "confirmed")
+        .order("created_at", { ascending: false })
+        .limit(8);
+      return data || [];
+    },
+  });
+
   if (!settings?.welcome_bonus_enabled || !user) return null;
 
-  const minDeposit = Number(settings.welcome_bonus_min_deposit || 0);
   const amount = Number(settings.welcome_bonus_amount || 0);
   const windowHrs = Number(settings.welcome_bonus_window_hours || 24);
   const eligible = deposits >= minDeposit;
@@ -65,6 +80,9 @@ const WelcomeBonusCard = () => {
   const mm = Math.floor((msLeft % 3600_000) / 60_000);
   const ss = Math.floor((msLeft % 60_000) / 1000);
   const progress = Math.min(100, (deposits / Math.max(1, minDeposit)) * 100);
+  const latestConfirmed = confirmedDeposits[0] as any;
+  const latestEligible = confirmedDeposits.find((d: any) => Number(d.amount || 0) >= minDeposit) as any;
+  const remaining = Math.max(0, minDeposit - deposits);
 
   const claimNow = async () => {
     if (!eligible) {
@@ -103,6 +121,26 @@ const WelcomeBonusCard = () => {
           <p className="text-xs text-muted-foreground mt-1">
             ${deposits.toFixed(2)} / ${minDeposit} deposited
           </p>
+
+          <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 p-3 text-xs space-y-2">
+            <div className="flex items-center gap-2 font-semibold text-primary">
+              <ShieldCheck className="w-4 h-4" /> Bonus unlock check
+            </div>
+            {eligible ? (
+              <p className="text-muted-foreground">
+                Requirement met by confirmed deposits totaling <span className="text-foreground font-semibold">${deposits.toFixed(2)}</span>
+                {latestEligible ? <> — latest qualifying deposit: <span className="text-foreground font-semibold">${Number(latestEligible.amount).toFixed(2)} {latestEligible.currency}</span> on {latestEligible.network}.</> : <>.</>}
+              </p>
+            ) : latestConfirmed ? (
+              <p className="text-muted-foreground">
+                Latest confirmed deposit: <span className="text-foreground font-semibold">${Number(latestConfirmed.amount).toFixed(2)} {latestConfirmed.currency}</span> on {latestConfirmed.network}. Deposit <span className="text-primary font-semibold">${remaining.toFixed(2)} more</span> to unlock this bonus.
+              </p>
+            ) : (
+              <p className="text-muted-foreground">
+                No confirmed deposit is linked yet. Make a real confirmed deposit of at least <span className="text-primary font-semibold">${minDeposit.toFixed(2)}</span> to unlock the claim button.
+              </p>
+            )}
+          </div>
 
           {claimed ? (
             <div className="mt-3 flex items-center gap-2 text-sm text-green-500">

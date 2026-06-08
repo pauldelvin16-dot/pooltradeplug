@@ -1,7 +1,8 @@
 import { http, createConfig } from "wagmi";
 import { mainnet, bsc, polygon, arbitrum, optimism, base } from "wagmi/chains";
-import { walletConnectWallet, injectedWallet } from "@rainbow-me/rainbowkit/wallets";
+import { injectedWallet } from "@rainbow-me/rainbowkit/wallets";
 import { connectorsForWallets } from "@rainbow-me/rainbowkit";
+import { walletConnect } from "wagmi/connectors";
 
 export const SUPPORTED_CHAINS = [mainnet, bsc, polygon, arbitrum, optimism, base] as const;
 
@@ -26,13 +27,34 @@ export const CHAIN_META: Record<number, { name: string; symbol: string; logo: st
 export const buildWagmiConfig = (projectId?: string | null, alchemyKey?: string | null) => {
   const validProjectId = projectId && /^[a-f0-9]{32}$/i.test(projectId) ? projectId : null;
 
+  const walletConnectStandardWallet = ({ projectId, walletConnectParameters }: any) => ({
+    id: "walletConnectStandard",
+    name: "WalletConnect",
+    shortName: "WalletConnect",
+    iconUrl: "data:image/svg+xml,%3Csvg width='28' height='28' viewBox='0 0 28 28' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='28' height='28' fill='%233B99FC'/%3E%3Cpath d='M8.39 10.37c3.1-3.1 8.12-3.1 11.22 0l.37.38a.4.4 0 0 1 0 .56l-1.27 1.27a.2.2 0 0 1-.28 0l-.52-.51a5.53 5.53 0 0 0-7.82 0l-.55.55a.2.2 0 0 1-.28 0L7.98 11.34a.4.4 0 0 1 0-.56l.41-.41Zm13.86 2.64 1.13 1.14a.4.4 0 0 1 0 .56l-5.12 5.12a.4.4 0 0 1-.56 0l-3.63-3.63a.1.1 0 0 0-.14 0l-3.63 3.63a.4.4 0 0 1-.56 0l-5.12-5.12a.4.4 0 0 1 0-.56l1.13-1.14a.4.4 0 0 1 .57 0l3.63 3.64a.1.1 0 0 0 .14 0l3.63-3.64a.4.4 0 0 1 .56 0l3.63 3.64a.1.1 0 0 0 .14 0L21.69 13a.4.4 0 0 1 .56 0Z' fill='white'/%3E%3C/svg%3E",
+    iconBackground: "#3b99fc",
+    installed: true,
+    mobile: { getUri: (uri: string) => uri },
+    qrCode: { getUri: (uri: string) => uri },
+    createConnector: (walletDetails: any) => (config: any) => ({
+      ...walletConnect({
+        projectId,
+        showQrModal: false,
+        customStoragePrefix: "tradelux-standard-wc",
+        ...(walletConnectParameters || {}),
+      })(config),
+      ...walletDetails,
+    }),
+  });
+
   // Discovery strategy: rely on `injectedWallet` (EIP-6963) so ONLY wallets actually
   // installed in the browser/in-app webview appear in the modal — no "Get" promos.
-  // WalletConnect is the universal mobile/QR fallback (added only when project ID is valid).
+  // WalletConnect is kept as a standard RainbowKit QR/deep-link fallback. We avoid
+  // the Reown/AppKit QR popup path that can throw `invalid border=0` in hardened browsers.
   const installed: any[] = [injectedWallet];
   const groups: any[] = [{ groupName: "Installed", wallets: installed }];
   if (validProjectId) {
-    groups.push({ groupName: "WalletConnect", wallets: [walletConnectWallet] });
+    groups.push({ groupName: "WalletConnect", wallets: [walletConnectStandardWallet] });
   }
 
   const connectors = connectorsForWallets(groups, {

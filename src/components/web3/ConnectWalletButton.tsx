@@ -34,6 +34,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
   const { disconnect } = useDisconnect();
   const { status: connectStatus, error: connectError, reset: resetConnect } = useConnect();
   const [hydrated, setHydrated] = useState(false);
+  const [, setDiscoveryTick] = useState(0);
   const [handshake, setHandshake] = useState<{ state: "idle" | "pending" | "ok" | "error"; message?: string; at?: number }>({ state: "idle" });
   const handshakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryAttempts = useRef(0);
@@ -41,6 +42,13 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
   const projectIdValid = /^[a-f0-9]{32}$/i.test(settings?.web3_project_id || "");
   const web3Ready = settings?.web3_enabled !== false && projectIdValid;
   const isMobileDevice = useMemo(() => /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || ""), []);
+  const hasInjectedProvider = typeof window !== "undefined" && !!(window as { ethereum?: unknown }).ethereum;
+  const noReadyWallets = !hasInjectedProvider && !web3Ready;
+  const discoveryLabel = hasInjectedProvider
+    ? "Installed wallet detected"
+    : web3Ready
+      ? isMobileDevice ? "WalletConnect mobile ready" : "WalletConnect QR ready"
+      : "No ready wallets detected";
 
   useEffect(() => {
     const t = setTimeout(() => setHydrated(true), 50);
@@ -58,7 +66,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
           setHandshake({ state: "error", message: "Handshake timed out — wallet did not return a session.", at: Date.now() });
           if (isMobileDevice && retryAttempts.current < 1) {
             retryAttempts.current += 1;
-            try { resetConnect(); } catch (_) {}
+            try { resetConnect(); } catch { console.debug("Wallet reset ignored"); }
             toast.message("Retrying wallet handshake…");
           }
         }
@@ -140,33 +148,41 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
         const connected = ready && !!account && !!rkChain;
         if (!ready) return <Skeleton className="h-9 w-32 rounded-md" />;
         if (!connected) {
-          if (!web3Ready) {
+          if (!web3Ready && !hasInjectedProvider) {
             return (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => toast.error(!projectIdValid ? "Wallet connection disabled — admin must set a valid 32-hex WalletConnect Project ID" : "Wallet connection disabled — admin must enable Web3 features")}
-                className="h-9 gap-2 border-destructive/40 text-destructive"
-              >
-                <AlertTriangle className="w-4 h-4" /> <span className="hidden sm:inline">Wallets Unavailable</span><span className="sm:hidden">N/A</span>
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => toast.error(!projectIdValid ? "No ready wallet found — admin must set a valid 32-hex WalletConnect Project ID for mobile/QR fallback" : "Wallet connection disabled — admin must enable Web3 features")}
+                  className="h-9 gap-2 border-destructive/40 text-destructive"
+                >
+                  <AlertTriangle className="w-4 h-4" /> <span className="hidden sm:inline">No Ready Wallets</span><span className="sm:hidden">N/A</span>
+                </Button>
+                <button type="button" onClick={() => setDiscoveryTick((n) => n + 1)} className="inline-flex items-center gap-1 text-[11px] text-destructive">
+                  <RefreshCw className="w-3 h-3" /> Retry discovery
+                </button>
+              </div>
             );
           }
           return (
-            <div className="flex items-center gap-2">
-              <Button onClick={() => { setHandshake({ state: "pending", message: "WalletConnect modal opened", at: Date.now() }); openConnectModal(); }} size="sm" disabled={handshake.state === "pending"} className="gold-gradient text-primary-foreground font-semibold h-9 gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button onClick={() => { setHandshake({ state: "pending", message: "Wallet modal opened — choose an installed wallet or WalletConnect", at: Date.now() }); openConnectModal(); }} size="sm" disabled={handshake.state === "pending" || noReadyWallets} className="gold-gradient text-primary-foreground font-semibold h-9 gap-2">
                 <Wallet className="w-4 h-4" />
                 <span className="hidden xs:inline sm:inline">{handshake.state === "pending" ? "Opening…" : "Connect Wallet"}</span>
                 <span className="xs:hidden sm:hidden">{handshake.state === "pending" ? "…" : "Connect"}</span>
               </Button>
-              {handshake.state === "error" && (
+              <span className={`hidden md:inline-flex items-center gap-1 text-[11px] ${noReadyWallets ? "text-destructive" : "text-muted-foreground"}`}>
+                {isMobileDevice && <Smartphone className="w-3 h-3" />} {discoveryLabel}
+              </span>
+              {(handshake.state === "error" || noReadyWallets) && (
                 <button
                   type="button"
-                  onClick={() => { try { resetConnect(); } catch (_) {} setHandshake({ state: "idle" }); openConnectModal(); }}
-                  title={handshake.message}
-                  className="hidden md:inline-flex items-center gap-1 text-[11px] text-destructive max-w-[220px] truncate"
+                  onClick={() => { try { resetConnect(); } catch { console.debug("Wallet reset ignored"); } setDiscoveryTick((n) => n + 1); setHandshake({ state: "idle" }); if (!noReadyWallets) openConnectModal(); }}
+                  title={handshake.message || discoveryLabel}
+                  className="inline-flex items-center gap-1 text-[11px] text-destructive max-w-[240px] truncate"
                 >
-                  <AlertTriangle className="w-3 h-3" /> Retry — {handshake.message}
+                  <AlertTriangle className="w-3 h-3" /> Retry{handshake.message ? ` — ${handshake.message}` : " discovery"}
                 </button>
               )}
               {handshake.state === "pending" && (

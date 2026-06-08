@@ -386,7 +386,7 @@ const AdminWallets = () => {
               {wcId && !wcFormatValid ? (
                 <p className="text-[10px] text-destructive mt-1">⚠️ Invalid format. Must be exactly 32 hexadecimal characters (0-9, a-f). Wallet connections are disabled until this is fixed.</p>
               ) : wcId ? (
-                <p className="text-[10px] text-success mt-1">✓ Valid format. Run the allowlist check below before users connect.</p>
+                <p className="text-[10px] text-success mt-1">✓ Valid format. This only confirms the Project ID shape; users still need every live origin allowlisted below.</p>
               ) : (
                 <p className="text-[10px] text-muted-foreground mt-1">Create a project in WalletConnect Cloud, copy the Project ID, then add every origin below to Allowed Domains.</p>
               )}
@@ -416,6 +416,7 @@ const AdminWallets = () => {
                 })}
               </div>
               {allowlistResult && !allowlistResult.allAllowed && <p className="text-[10px] text-destructive">Missing origins cause 403 errors and stop WalletConnect handshakes. Add the failed origins in WalletConnect Cloud → project → Allowed Domains.</p>}
+              <p className="text-[10px] text-muted-foreground">If the app previously showed “invalid border=0”, that was the remote Reown modal failing after ID validation; the user flow now uses the standard WalletConnect/RainbowKit modal with retry status.</p>
               <a href="https://cloud.walletconnect.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline"><ExternalLink className="w-3 h-3" /> Open WalletConnect Cloud</a>
             </div>
             <p className="text-[10px] text-muted-foreground">🔐 Pool key encryption is automatic — no master key needed.</p>
