@@ -1,4 +1,5 @@
 import ConnectWalletButton from "@/components/web3/ConnectWalletButton";
+import RealtimeStatusBadge from "@/components/RealtimeStatusBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { Wallet } from "lucide-react";
 
@@ -19,7 +20,8 @@ const DashboardTopBar = () => {
           </p>
         </div>
       </div>
-      <div className="shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
+        <RealtimeStatusBadge />
         <ConnectWalletButton />
       </div>
     </header>
