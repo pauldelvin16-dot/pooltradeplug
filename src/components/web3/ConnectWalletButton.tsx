@@ -34,7 +34,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
   const { disconnect } = useDisconnect();
   const { status: connectStatus, error: connectError, reset: resetConnect } = useConnect();
   const [hydrated, setHydrated] = useState(false);
-  const [discoveryTick, setDiscoveryTick] = useState(0);
+  const [, setDiscoveryTick] = useState(0);
   const [handshake, setHandshake] = useState<{ state: "idle" | "pending" | "ok" | "error"; message?: string; at?: number }>({ state: "idle" });
   const handshakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryAttempts = useRef(0);
