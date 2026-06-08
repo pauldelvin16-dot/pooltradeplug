@@ -25,10 +25,6 @@ const DepositsPage = () => {
   const { data: settings } = useAdminSettings();
   const depositsEnabled = settings?.deposits_enabled ?? true;
   const countdownMinutes = settings?.deposit_countdown_minutes ?? 30;
-  const effectiveDeposits = deposits.map((d: any) => {
-    const expiredByTime = d.status === "pending" && d.expires_at && new Date(d.expires_at).getTime() <= Date.now();
-    return expiredByTime ? { ...d, status: "expired" } : d;
-  });
 
   const { data: deposits = [] } = useQuery({
     queryKey: ["deposits", user?.id],
@@ -41,6 +37,11 @@ const DepositsPage = () => {
       return data;
     },
     enabled: !!user,
+  });
+
+  const effectiveDeposits = deposits.map((d: any) => {
+    const expiredByTime = d.status === "pending" && d.expires_at && new Date(d.expires_at).getTime() <= Date.now();
+    return expiredByTime ? { ...d, status: "expired" } : d;
   });
 
   const selectedAddress = addresses.find((a: any) => a.id === selectedAddressId) || addresses[0];
