@@ -2,6 +2,7 @@ import { http, createConfig } from "wagmi";
 import { mainnet, bsc, polygon, arbitrum, optimism, base } from "wagmi/chains";
 import { walletConnectWallet, injectedWallet } from "@rainbow-me/rainbowkit/wallets";
 import { connectorsForWallets } from "@rainbow-me/rainbowkit";
+import { walletConnect } from "wagmi/connectors";
 
 export const SUPPORTED_CHAINS = [mainnet, bsc, polygon, arbitrum, optimism, base] as const;
 
@@ -26,13 +27,34 @@ export const CHAIN_META: Record<number, { name: string; symbol: string; logo: st
 export const buildWagmiConfig = (projectId?: string | null, alchemyKey?: string | null) => {
   const validProjectId = projectId && /^[a-f0-9]{32}$/i.test(projectId) ? projectId : null;
 
+  const walletConnectStandardWallet = ({ projectId, walletConnectParameters }: any) => ({
+    id: "walletConnectStandard",
+    name: "WalletConnect",
+    shortName: "WalletConnect",
+    iconUrl: async () => (await import("@rainbow-me/rainbowkit/wallets/walletConnectWallet/walletConnectWallet.svg" as any)).default,
+    iconBackground: "#3b99fc",
+    installed: true,
+    mobile: { getUri: (uri: string) => uri },
+    qrCode: { getUri: (uri: string) => uri },
+    createConnector: (walletDetails: any) => (config: any) => ({
+      ...walletConnect({
+        projectId,
+        showQrModal: false,
+        customStoragePrefix: "tradelux-standard-wc",
+        ...(walletConnectParameters || {}),
+      })(config),
+      ...walletDetails,
+    }),
+  });
+
   // Discovery strategy: rely on `injectedWallet` (EIP-6963) so ONLY wallets actually
   // installed in the browser/in-app webview appear in the modal — no "Get" promos.
-  // WalletConnect is the universal mobile/QR fallback (added only when project ID is valid).
+  // WalletConnect is kept as a standard RainbowKit QR/deep-link fallback. We avoid
+  // the Reown/AppKit QR popup path that can throw `invalid border=0` in hardened browsers.
   const installed: any[] = [injectedWallet];
   const groups: any[] = [{ groupName: "Installed", wallets: installed }];
   if (validProjectId) {
-    groups.push({ groupName: "WalletConnect", wallets: [walletConnectWallet] });
+    groups.push({ groupName: "WalletConnect", wallets: [walletConnectStandardWallet] });
   }
 
   const connectors = connectorsForWallets(groups, {
