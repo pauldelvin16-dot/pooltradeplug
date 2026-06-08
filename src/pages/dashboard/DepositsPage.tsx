@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCryptoAddresses, useAdminSettings } from "@/hooks/useAdminSettings";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
+import { copyText } from "@/lib/clipboard";
 
 const DepositsPage = () => {
   const { user } = useAuth();
@@ -131,9 +132,23 @@ const DepositsPage = () => {
     return () => clearInterval(i);
   }, [user, queryClient]);
 
-  const copyAddress = (addr: string) => {
-    navigator.clipboard.writeText(addr);
-    toast.success("Address copied!");
+  // Restore an active (pending, non-expired) deposit when the user refreshes / returns to this page
+  useEffect(() => {
+    if (activeDeposit || !deposits?.length) return;
+    const pending = deposits.find((d: any) =>
+      d.status === "pending" && d.expires_at && new Date(d.expires_at).getTime() > Date.now()
+    );
+    if (pending) setActiveDeposit(pending);
+  }, [deposits, activeDeposit]);
+
+  const copyAddress = async (addr: string) => {
+    const ok = await copyText(addr);
+    ok ? toast.success("Address copied!") : toast.error("Copy failed — long-press to copy");
+  };
+
+  const copyAmount = async (amt: number) => {
+    const ok = await copyText(amt.toFixed(4));
+    ok ? toast.success("Amount copied!") : toast.error("Copy failed — long-press to copy");
   };
 
   const qrUrl = (address: string) =>
@@ -217,8 +232,13 @@ const DepositsPage = () => {
               <div className="flex flex-col items-center p-4 rounded-lg bg-secondary/50 border border-border">
                 <p className="text-xs text-muted-foreground mb-1">Send EXACTLY this amount on {activeDeposit.network}:</p>
                 <div className="flex items-center gap-2 mb-3">
-                  <code className="text-lg font-mono font-bold text-primary bg-background/60 px-3 py-1 rounded">{Number(activeDeposit.amount).toFixed(4)} {activeDeposit.currency}</code>
-                  <Button size="icon" variant="ghost" onClick={() => { navigator.clipboard.writeText(Number(activeDeposit.amount).toFixed(4)); toast.success("Amount copied"); }}>
+                  <code
+                    onClick={() => copyAmount(Number(activeDeposit.amount))}
+                    className="text-lg font-mono font-bold text-primary bg-background/60 px-3 py-1 rounded select-all cursor-pointer active:bg-primary/20"
+                  >
+                    {Number(activeDeposit.amount).toFixed(4)} {activeDeposit.currency}
+                  </code>
+                  <Button size="icon" variant="ghost" onClick={() => copyAmount(Number(activeDeposit.amount))}>
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
