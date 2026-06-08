@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Users, Target, Clock, Trophy, ArrowRight, MessageSquare, Send, TrendingUp, AlertTriangle, Gift } from "lucide-react";
+import { Users, Target, Clock, Trophy, ArrowRight, MessageSquare, Send, TrendingUp, AlertTriangle, Gift, ShieldCheck, Flame, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -157,6 +157,11 @@ const PoolsPage = () => {
     .filter((p: any) => p.status === "active")
     .slice(0, 4)
     .map((p: any) => ({ name: p.name, value: parseFloat(p.current_profit), target: parseFloat(p.target_profit) }));
+  const activePools = pools.filter((p: any) => p.status === "active");
+  const joinedCount = myParticipations.length;
+  const avgFill = activePools.length
+    ? Math.round(activePools.reduce((sum: number, p: any) => sum + (Number(p.current_participants || 0) / Math.max(1, Number(p.max_participants || 1))) * 100, 0) / activePools.length)
+    : 0;
 
   const s = settings as any;
   const bonusEnabled = s?.first_deposit_bonus_enabled;
@@ -196,6 +201,21 @@ const PoolsPage = () => {
           </div>
         </div>
       )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="glass-card p-4 flex items-center gap-3">
+          <Flame className="w-8 h-8 text-primary" />
+          <div><p className="text-xs text-muted-foreground">Active opportunities</p><p className="text-lg font-semibold">{activePools.length} pools</p></div>
+        </div>
+        <div className="glass-card p-4 flex items-center gap-3">
+          <BarChart3 className="w-8 h-8 text-primary" />
+          <div><p className="text-xs text-muted-foreground">Average fill rate</p><p className="text-lg font-semibold">{avgFill}%</p></div>
+        </div>
+        <div className="glass-card p-4 flex items-center gap-3">
+          <ShieldCheck className="w-8 h-8 text-primary" />
+          <div><p className="text-xs text-muted-foreground">Your joined pools</p><p className="text-lg font-semibold">{joinedCount}</p></div>
+        </div>
+      </div>
 
       {/* Pool Progress Visualization */}
       {poolPieData.length > 0 && (
@@ -352,6 +372,12 @@ const PoolsPage = () => {
                   <p className="text-xs text-muted-foreground">{refundPolicy}</p>
                 </div>
               )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4 text-xs">
+                <div className="rounded-md border border-border bg-secondary/20 p-2"><span className="text-muted-foreground">Entry window</span><p className="font-semibold">{pool.status === "active" && !isFull ? "Open now" : isFull ? "Filled" : pool.status}</p></div>
+                <div className="rounded-md border border-border bg-secondary/20 p-2"><span className="text-muted-foreground">Payout state</span><p className="font-semibold">{hasJoined ? (participationMap.get(pool.id)?.payout_status || "locked") : "Join to qualify"}</p></div>
+                <div className="rounded-md border border-border bg-secondary/20 p-2"><span className="text-muted-foreground">Confidence signal</span><p className="font-semibold">Live progress + pool chat</p></div>
+              </div>
 
               <div className="flex items-center gap-3 flex-wrap">
                 {pool.status === "active" && !isFull && !hasJoined && (
