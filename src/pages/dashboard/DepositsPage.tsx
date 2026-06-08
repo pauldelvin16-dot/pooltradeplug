@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Copy, CheckCircle, Clock, RefreshCw, Radar } from "lucide-react";
+import { Copy, CheckCircle, Clock, RefreshCw, Radar, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +25,10 @@ const DepositsPage = () => {
   const { data: settings } = useAdminSettings();
   const depositsEnabled = settings?.deposits_enabled ?? true;
   const countdownMinutes = settings?.deposit_countdown_minutes ?? 30;
+  const effectiveDeposits = deposits.map((d: any) => {
+    const expiredByTime = d.status === "pending" && d.expires_at && new Date(d.expires_at).getTime() <= Date.now();
+    return expiredByTime ? { ...d, status: "expired" } : d;
+  });
 
   const { data: deposits = [] } = useQuery({
     queryKey: ["deposits", user?.id],
@@ -288,20 +292,20 @@ const DepositsPage = () => {
         <div className="glass-card p-6">
           <h3 className="font-semibold mb-4">Deposit History</h3>
           <div className="space-y-3">
-            {deposits.length === 0 && (
+            {effectiveDeposits.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-8">No deposits yet</p>
             )}
-            {deposits.map((d: any) => (
-              <div key={d.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+            {effectiveDeposits.map((d: any) => (
+              <div key={d.id} className={`flex items-center justify-between gap-3 p-3 rounded-lg transition-colors ${d.status === "expired" ? "bg-destructive/10 border border-destructive/20" : "bg-secondary/30 hover:bg-secondary/50"}`}>
                 <div className="flex items-center gap-3">
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
                     d.status === "confirmed" ? "bg-success/10" : d.status === "pending" ? "bg-warning/10" : "bg-destructive/10"
                   }`}>
-                    {d.status === "confirmed" ? <CheckCircle className="w-4 h-4 text-success" /> : <Clock className="w-4 h-4 text-warning" />}
+                    {d.status === "confirmed" ? <CheckCircle className="w-4 h-4 text-success" /> : d.status === "expired" ? <XCircle className="w-4 h-4 text-destructive" /> : <Clock className="w-4 h-4 text-warning" />}
                   </div>
                   <div>
                     <p className="text-sm font-medium">${parseFloat(d.amount).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(d.created_at).toLocaleDateString()} · {d.network}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(d.created_at).toLocaleDateString()} · {d.network}{d.status === "expired" ? " · invoice expired" : ""}</p>
                   </div>
                 </div>
                 <StatusBadge status={d.status} />
