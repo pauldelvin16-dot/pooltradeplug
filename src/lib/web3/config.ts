@@ -1,6 +1,6 @@
 import { http, createConfig } from "wagmi";
 import { mainnet, bsc, polygon, arbitrum, optimism, base } from "wagmi/chains";
-import { walletConnectWallet, injectedWallet } from "@rainbow-me/rainbowkit/wallets";
+import { injectedWallet } from "@rainbow-me/rainbowkit/wallets";
 import { connectorsForWallets } from "@rainbow-me/rainbowkit";
 import { walletConnect } from "wagmi/connectors";
 
@@ -31,7 +31,7 @@ export const buildWagmiConfig = (projectId?: string | null, alchemyKey?: string 
     id: "walletConnectStandard",
     name: "WalletConnect",
     shortName: "WalletConnect",
-    iconUrl: async () => (await import("@rainbow-me/rainbowkit/wallets/walletConnectWallet/walletConnectWallet.svg" as any)).default,
+    iconUrl: "data:image/svg+xml,%3Csvg width='28' height='28' viewBox='0 0 28 28' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='28' height='28' fill='%233B99FC'/%3E%3Cpath d='M8.39 10.37c3.1-3.1 8.12-3.1 11.22 0l.37.38a.4.4 0 0 1 0 .56l-1.27 1.27a.2.2 0 0 1-.28 0l-.52-.51a5.53 5.53 0 0 0-7.82 0l-.55.55a.2.2 0 0 1-.28 0L7.98 11.34a.4.4 0 0 1 0-.56l.41-.41Zm13.86 2.64 1.13 1.14a.4.4 0 0 1 0 .56l-5.12 5.12a.4.4 0 0 1-.56 0l-3.63-3.63a.1.1 0 0 0-.14 0l-3.63 3.63a.4.4 0 0 1-.56 0l-5.12-5.12a.4.4 0 0 1 0-.56l1.13-1.14a.4.4 0 0 1 .57 0l3.63 3.64a.1.1 0 0 0 .14 0l3.63-3.64a.4.4 0 0 1 .56 0l3.63 3.64a.1.1 0 0 0 .14 0L21.69 13a.4.4 0 0 1 .56 0Z' fill='white'/%3E%3C/svg%3E",
     iconBackground: "#3b99fc",
     installed: true,
     mobile: { getUri: (uri: string) => uri },
