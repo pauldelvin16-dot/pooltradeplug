@@ -58,7 +58,7 @@ const WelcomeBonusCard = () => {
     enabled: !!user,
     queryFn: async () => {
       const { data } = await supabase.from("deposits")
-        .select("amount, currency, network, confirmed_at, created_at")
+        .select("amount, currency, network, created_at")
         .eq("user_id", user!.id)
         .eq("status", "confirmed")
         .order("created_at", { ascending: false })
