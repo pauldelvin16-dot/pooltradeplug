@@ -248,7 +248,10 @@ const DepositsPage = () => {
                   className="w-48 h-48 rounded-lg border border-border"
                 />
                 <div className="flex items-center gap-2 mt-3 w-full">
-                  <code className="flex-1 text-xs font-mono text-primary break-all bg-background/50 p-2 rounded">
+                  <code
+                    onClick={() => copyAddress(activeDeposit.crypto_addresses?.address)}
+                    className="flex-1 text-xs font-mono text-primary break-all bg-background/50 p-2 rounded select-all cursor-pointer active:bg-primary/20"
+                  >
                     {activeDeposit.crypto_addresses?.address}
                   </code>
                   <Button size="icon" variant="ghost" onClick={() => copyAddress(activeDeposit.crypto_addresses?.address)} className="shrink-0 hover:bg-primary/10">
