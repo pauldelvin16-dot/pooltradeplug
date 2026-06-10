@@ -22,15 +22,6 @@ const DashboardHome = () => {
     enabled: !!user,
   });
 
-  const { data: mt5Accounts = [] } = useQuery({
-    queryKey: ["my-mt5", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase.from("mt5_accounts").select("*");
-      return data || [];
-    },
-    enabled: !!user,
-  });
-
   const { data: poolParticipations = [] } = useQuery({
     queryKey: ["my-pools", user?.id],
     queryFn: async () => {
@@ -59,6 +50,7 @@ const DashboardHome = () => {
 
   const confirmedDeposits = deposits.filter((d: any) => d.status === "confirmed");
   const totalDeposited = confirmedDeposits.reduce((sum: number, d: any) => sum + parseFloat(d.amount), 0);
+  const payoutReady = poolParticipations.filter((p: any) => ["locked", "in_progress", "paid"].includes(p.payout_status)).length;
 
   // Build deposit chart data
   const depositChartData = deposits
@@ -84,7 +76,7 @@ const DashboardHome = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={DollarSign} title="Balance" value={`$${parseFloat(profile?.balance || "0").toLocaleString("en-US", { minimumFractionDigits: 2 })}`} change="Available funds" changeType="neutral" />
         <StatCard icon={TrendingUp} title="Total Deposited" value={`$${totalDeposited.toLocaleString()}`} change={`${confirmedDeposits.length} deposits`} changeType="positive" />
-        <StatCard icon={BarChart3} title="MT5 Accounts" value={String(mt5Accounts.length)} change={`${mt5Accounts.filter((a: any) => a.status === "active").length} active`} changeType="neutral" />
+        <StatCard icon={BarChart3} title="Pool Positions" value={String(poolParticipations.length)} change={`${payoutReady} payout tracked`} changeType="neutral" />
         <StatCard icon={Users} title="Active Pools" value={String(poolParticipations.length)} change="Joined pools" changeType="neutral" />
       </div>
 
