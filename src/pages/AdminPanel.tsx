@@ -1,10 +1,5 @@
-import { useState } from "react";
-import { useNavigate, Outlet } from "react-router-dom";
-import { 
-  Users, BarChart3, Wallet, Trophy, Settings, Shield, Eye, 
-  MessageSquare, Bot, ArrowUpRight, Home, LogOut, Menu
-} from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { Outlet } from "react-router-dom";
+import { Shield } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import ConnectWalletButton from "@/components/web3/ConnectWalletButton";
