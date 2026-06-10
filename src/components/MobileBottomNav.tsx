@@ -1,4 +1,4 @@
-import { Home, Wallet, BarChart3, Users, MessageCircle, LogOut } from "lucide-react";
+import { Home, Wallet, Users, MessageCircle, LogOut } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,7 +39,6 @@ const MobileBottomNav = () => {
       path: "/dashboard/chat",
       locked: !chatUnlocked,
     },
-    { icon: BarChart3, label: t("nav.mt5"), path: "/dashboard/mt5" },
     { icon: LogOut, label: "Logout", path: "logout" },
   ];
 

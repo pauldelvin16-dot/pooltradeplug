@@ -11,6 +11,22 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 
+const CFD_CRYPTO_SYMBOLS = [
+  "BTCUSD", "ETHUSD", "BNBUSD", "SOLUSD", "XRPUSD", "ADAUSD", "DOGEUSD", "AVAXUSD",
+  "DOTUSD", "TRXUSD", "LINKUSD", "MATICUSD", "TONUSD", "LTCUSD", "BCHUSD", "UNIUSD",
+  "ATOMUSD", "NEARUSD", "APTUSD", "ARBUSD", "OPUSD", "SUIUSD", "SEIUSD", "INJUSD",
+  "RNDRUSD", "FILUSD", "ETCUSD", "XLMUSD", "HBARUSD", "AAVEUSD", "MKRUSD", "ICPUSD",
+  "PEPEUSD", "SHIBUSD", "FETUSD", "TIAUSD", "WIFUSD", "JUPUSD", "PYTHUSD", "ORDIUSD",
+];
+
+const POOL_TEMPLATES = [
+  { theme: "Momentum", risk: "Balanced", split: 72, days: 14, note: "breakout rotation, staggered entries, and daily settlement review" },
+  { theme: "Scalp Basket", risk: "Active", split: 68, days: 7, note: "short-duration CFD scalps with tight exposure windows" },
+  { theme: "Swing Alpha", risk: "Moderate", split: 75, days: 21, note: "multi-day trend capture with protected exit planning" },
+  { theme: "Yield Guard", risk: "Conservative", split: 65, days: 30, note: "lower-volatility allocation with capital-first settlement rules" },
+  { theme: "High Conviction", risk: "Aggressive", split: 80, days: 10, note: "focused volatility strategy for experienced pool participants" },
+];
+
 const AdminPools = () => {
   const queryClient = useQueryClient();
   const [poolDialogOpen, setPoolDialogOpen] = useState(false);
@@ -98,20 +114,52 @@ const AdminPools = () => {
   });
 
   const generateDemoPool = () => {
-    const symbols = ["BTCUSD", "XAUUSD", "ETHUSD", "USDT Yield", "BNB Alpha"];
-    const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+    const symbol = CFD_CRYPTO_SYMBOLS[Math.floor(Math.random() * CFD_CRYPTO_SYMBOLS.length)];
+    const template = POOL_TEMPLATES[Math.floor(Math.random() * POOL_TEMPLATES.length)];
     const entry = [100, 250, 500, 1000][Math.floor(Math.random() * 4)];
     const max = [12, 20, 30, 50][Math.floor(Math.random() * 4)];
-    setPoolName(`${symbol} Prime Pool`);
+    setPoolName(`${symbol} ${template.theme} Pool`);
     setPoolSymbol(symbol);
     setPoolEntry(String(entry));
     setPoolTarget(String(Math.round(entry * max * (0.35 + Math.random()))));
     setPoolMaxParts(String(max));
-    setPoolDays(String([7, 14, 21, 30][Math.floor(Math.random() * 4)]));
-    setPoolSplit(String([65, 70, 75, 80][Math.floor(Math.random() * 4)]));
-    setPoolDesc(`Managed ${symbol} pool with live participant progress, visible profit tracking, and settlement updates.`);
+    setPoolDays(String(template.days));
+    setPoolSplit(String(template.split));
+    setPoolDesc(`${template.risk} ${symbol} CFD crypto trading pool using ${template.note}.`);
     setPoolRefund("If target is missed, eligible capital is refunded according to admin settlement review.");
   };
+
+  const autoGeneratePools = useMutation({
+    mutationFn: async () => {
+      const selected = [...CFD_CRYPTO_SYMBOLS].sort(() => Math.random() - 0.5).slice(0, 8);
+      const rows = selected.map((symbol, index) => {
+        const template = POOL_TEMPLATES[index % POOL_TEMPLATES.length];
+        const entry = [100, 150, 250, 500, 750, 1000][Math.floor(Math.random() * 6)];
+        const max = [10, 16, 24, 32, 40][Math.floor(Math.random() * 5)];
+        const days = template.days;
+        return {
+          name: `${symbol} ${template.theme} ${index + 1}`,
+          target_profit: Math.round(entry * max * (0.45 + Math.random() * 0.8)),
+          entry_amount: entry,
+          max_participants: max,
+          duration_days: days,
+          end_date: new Date(Date.now() + days * 86400000).toISOString(),
+          traded_symbol: symbol,
+          profit_split_percentage: template.split,
+          refund_policy: "Capital is settled by admin review; eligible users can request payout after pool completion.",
+          description: `${template.risk} auto-generated crypto CFD pool with ${template.note}.`,
+          status: index < 4 ? "active" : "draft",
+        };
+      });
+      const { error } = await supabase.from("pools").insert(rows as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Auto-generated 8 crypto CFD pools");
+      queryClient.invalidateQueries({ queryKey: ["admin-pools"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const openEdit = (pool: any) => {
     setEditingPool(pool);
@@ -129,11 +177,21 @@ const AdminPools = () => {
     setEditStatus(pool.status);
   };
 
+  const activeCount = allPools.filter((pool: any) => pool.status === "active").length;
+  const draftCount = allPools.filter((pool: any) => pool.status === "draft").length;
+  const totalCapacity = allPools.reduce((sum: number, pool: any) => sum + Number(pool.max_participants || 0), 0);
+  const filledSeats = allPools.reduce((sum: number, pool: any) => sum + Number(pool.current_participants || 0), 0);
+  const fillRate = totalCapacity ? Math.round((filledSeats / totalCapacity) * 100) : 0;
+
   return (
     <div className="p-4 md:p-8 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h2 className="text-xl font-display font-bold">Pool Management</h2>
-        <Dialog open={poolDialogOpen} onOpenChange={setPoolDialogOpen}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => autoGeneratePools.mutate()} disabled={autoGeneratePools.isPending} className="border-primary/30 text-primary hover:bg-primary/10">
+            <Sparkles className="w-4 h-4 mr-1" /> {autoGeneratePools.isPending ? "Generating..." : "Auto-generate crypto pools"}
+          </Button>
+          <Dialog open={poolDialogOpen} onOpenChange={setPoolDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="gold-gradient text-primary-foreground font-semibold hover:opacity-90">
               <Plus className="w-4 h-4 mr-1" /> Create Pool
@@ -145,10 +203,18 @@ const AdminPools = () => {
               <Button type="button" variant="outline" size="sm" onClick={generateDemoPool} className="w-full border-primary/30 text-primary hover:bg-primary/10">
                 <Sparkles className="w-4 h-4 mr-1" /> Generate polished pool template
               </Button>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                {POOL_TEMPLATES.slice(0, 4).map((template) => (
+                  <div key={template.theme} className="rounded-md border border-border bg-secondary/30 p-2">
+                    <p className="font-semibold">{template.theme}</p>
+                    <p className="text-muted-foreground">{template.risk} · {template.split}%</p>
+                  </div>
+                ))}
+              </div>
               <div className="space-y-2"><Label>Pool Name</Label><Input value={poolName} onChange={(e) => setPoolName(e.target.value)} placeholder="e.g. Gold Rush Alpha" className="bg-secondary/50 border-border" /></div>
               <div className="space-y-2"><Label>Description</Label><Textarea value={poolDesc} onChange={(e) => setPoolDesc(e.target.value)} placeholder="Pool description..." className="bg-secondary/50 border-border" /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>Traded Symbol</Label><Input value={poolSymbol} onChange={(e) => setPoolSymbol(e.target.value)} placeholder="e.g. XAUUSD" className="bg-secondary/50 border-border" /></div>
+                <div className="space-y-2"><Label>CFD Crypto Symbol</Label><select value={poolSymbol} onChange={(e) => setPoolSymbol(e.target.value)} className="w-full h-10 rounded-md border border-border bg-secondary/50 px-3 text-sm font-mono"><option value="">Select symbol</option>{CFD_CRYPTO_SYMBOLS.map((symbol) => <option key={symbol} value={symbol}>{symbol}</option>)}</select></div>
                 <div className="space-y-2"><Label>Profit Split %</Label><Input type="number" value={poolSplit} onChange={(e) => setPoolSplit(e.target.value)} className="bg-secondary/50 border-border" /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -166,6 +232,31 @@ const AdminPools = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="glass-card p-4"><p className="text-xs text-muted-foreground">Active pools</p><p className="text-2xl font-semibold gold-text">{activeCount}</p></div>
+        <div className="glass-card p-4"><p className="text-xs text-muted-foreground">Draft templates</p><p className="text-2xl font-semibold">{draftCount}</p></div>
+        <div className="glass-card p-4"><p className="text-xs text-muted-foreground">Seat fill rate</p><p className="text-2xl font-semibold">{fillRate}%</p></div>
+        <div className="glass-card p-4"><p className="text-xs text-muted-foreground">CFD symbols</p><p className="text-2xl font-semibold">{CFD_CRYPTO_SYMBOLS.length}</p></div>
+      </div>
+
+      <div className="glass-card p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold">Crypto CFD symbol desk</p>
+            <p className="text-xs text-muted-foreground">Select these when creating pools or auto-generate a rotating market board.</p>
+          </div>
+          <Button size="sm" variant="outline" onClick={generateDemoPool} className="border-primary/30 text-primary hover:bg-primary/10">Pick signal</Button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {CFD_CRYPTO_SYMBOLS.map((symbol) => (
+            <button key={symbol} type="button" onClick={() => setPoolSymbol(symbol)} className="rounded-md border border-border bg-secondary/30 px-2 py-1 text-[11px] font-mono text-muted-foreground hover:border-primary/40 hover:text-primary">
+              {symbol}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Edit Dialog */}
@@ -188,7 +279,7 @@ const AdminPools = () => {
               <div className="space-y-2"><Label>Duration (days)</Label><Input type="number" value={editDays} onChange={(e) => setEditDays(e.target.value)} className="bg-secondary/50 border-border" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>Traded Symbol</Label><Input value={editSymbol} onChange={(e) => setEditSymbol(e.target.value)} placeholder="XAUUSD" className="bg-secondary/50 border-border" /></div>
+              <div className="space-y-2"><Label>CFD Crypto Symbol</Label><select value={editSymbol} onChange={(e) => setEditSymbol(e.target.value)} className="w-full h-10 rounded-md border border-border bg-secondary/50 px-3 text-sm font-mono"><option value="">Select symbol</option>{CFD_CRYPTO_SYMBOLS.map((symbol) => <option key={symbol} value={symbol}>{symbol}</option>)}</select></div>
               <div className="space-y-2"><Label>Profit Split %</Label><Input type="number" value={editSplit} onChange={(e) => setEditSplit(e.target.value)} className="bg-secondary/50 border-border" /></div>
             </div>
             <div className="space-y-2"><Label>Refund Policy</Label><Textarea value={editRefund} onChange={(e) => setEditRefund(e.target.value)} className="bg-secondary/50 border-border text-xs" /></div>

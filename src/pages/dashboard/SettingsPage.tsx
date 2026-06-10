@@ -31,7 +31,7 @@ const SettingsPage = () => {
         {[
           { label: "Deposit confirmations", desc: "Get notified when deposits are approved", default: true },
           { label: "Pool updates", desc: "Progress and completion alerts", default: true },
-          { label: "MT5 status changes", desc: "Account assignment and availability", default: false },
+          { label: "Payout updates", desc: "Pool payout approvals and withdrawal activity", default: true },
           { label: "Marketing emails", desc: "News and platform updates", default: false },
         ].map((item) => (
           <div key={item.label} className="flex items-center justify-between py-2">

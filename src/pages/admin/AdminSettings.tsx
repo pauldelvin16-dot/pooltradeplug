@@ -235,7 +235,6 @@ const AdminSettings = () => {
   const settingsToggles = [
     { key: "deposits_enabled", label: "Deposits", desc: "Enable/disable deposits platform-wide" },
     { key: "withdrawals_enabled", label: "Withdrawals", desc: "Enable/disable withdrawals" },
-    { key: "mt5_enabled", label: "MT5 Management", desc: "Enable/disable MT5 features" },
     { key: "pools_enabled", label: "Pool Trading", desc: "Enable/disable pool trading" },
     { key: "registrations_enabled", label: "New Registrations", desc: "Allow new users to sign up" },
   ];

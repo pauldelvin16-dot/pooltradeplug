@@ -2,7 +2,6 @@
   "nav": {
     "home": "Home",
     "wallet": "Wallet",
-    "mt5": "MT5",
     "pools": "Pools",
     "chat": "Chat",
     "profile": "Profile",
@@ -15,7 +14,7 @@
     "badge": "Live Trading Platform",
     "title1": "Trade Smarter with",
     "title2": "Elite Access",
-    "subtitle": "The world-class trading management platform. MT5 accounts, pool trading, USDT deposits — all in one secure, luxurious experience.",
+    "subtitle": "The world-class pool trading platform. Curated crypto pools, USDT deposits, and payout tracking — all in one secure, luxurious experience.",
     "startTrading": "Start Trading",
     "signIn": "Sign In"
   },

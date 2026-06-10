@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Wallet, ChevronDown, LogOut, Copy, RefreshCw, AlertTriangle, Smartphone } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +18,13 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { CHAIN_META, SUPPORTED_CHAINS } from "@/lib/web3/config";
+
+const ANDROID_WALLET_LINKS = [
+  { name: "MetaMask", build: (url: string) => `https://metamask.app.link/dapp/${url.replace(/^https?:\/\//, "")}` },
+  { name: "Trust Wallet", build: (url: string) => `https://link.trustwallet.com/open_url?coin_id=60&url=${encodeURIComponent(url)}` },
+  { name: "Coinbase Wallet", build: (url: string) => `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(url)}` },
+  { name: "Rainbow", build: (url: string) => `https://rnbwapp.com/wc?uri=${encodeURIComponent(url)}` },
+];
 
 const detectDevice = () => {
   const ua = navigator.userAgent || "";
@@ -34,21 +42,45 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
   const { disconnect } = useDisconnect();
   const { status: connectStatus, error: connectError, reset: resetConnect } = useConnect();
   const [hydrated, setHydrated] = useState(false);
-  const [, setDiscoveryTick] = useState(0);
+  const [discoveryTick, setDiscoveryTick] = useState(0);
+  const [androidModalOpen, setAndroidModalOpen] = useState(false);
   const [handshake, setHandshake] = useState<{ state: "idle" | "pending" | "ok" | "error"; message?: string; at?: number }>({ state: "idle" });
   const handshakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openConnectModalSafe = useRef<(() => void) | null>(null);
   const retryAttempts = useRef(0);
 
   const projectIdValid = /^[a-f0-9]{32}$/i.test(settings?.web3_project_id || "");
   const web3Ready = settings?.web3_enabled !== false && projectIdValid;
   const isMobileDevice = useMemo(() => /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || ""), []);
-  const hasInjectedProvider = typeof window !== "undefined" && !!(window as { ethereum?: unknown }).ethereum;
+  const isAndroidDevice = useMemo(() => /Android/i.test(navigator.userAgent || ""), []);
+  const walletSignals = useMemo(() => {
+    const eth = typeof window !== "undefined" ? (window as any).ethereum : null;
+    const providers = eth?.providers || (eth ? [eth] : []);
+    const names = new Set<string>();
+    providers.forEach((provider: any) => {
+      if (provider?.isMetaMask) names.add("MetaMask");
+      if (provider?.isTrust || provider?.isTrustWallet) names.add("Trust Wallet");
+      if (provider?.isCoinbaseWallet) names.add("Coinbase Wallet");
+      if (provider?.isRabby) names.add("Rabby");
+      if (provider?.isBraveWallet) names.add("Brave Wallet");
+      if (provider?.isRainbow) names.add("Rainbow");
+    });
+    return { hasProvider: !!eth, names: Array.from(names) };
+  }, [hydrated, discoveryTick]);
+  const hasInjectedProvider = walletSignals.hasProvider;
   const noReadyWallets = !hasInjectedProvider && !web3Ready;
   const discoveryLabel = hasInjectedProvider
-    ? "Installed wallet detected"
+    ? `Ready wallet: ${walletSignals.names[0] || "Browser wallet"}`
     : web3Ready
-      ? isMobileDevice ? "WalletConnect mobile ready" : "WalletConnect QR ready"
+      ? isAndroidDevice ? "Open inside wallet browser" : isMobileDevice ? "WalletConnect mobile ready" : "WalletConnect QR ready"
       : "No ready wallets detected";
+
+  const openAndroidWallet = (build: (url: string) => string) => {
+    const url = window.location.href;
+    setAndroidModalOpen(false);
+    setHandshake({ state: "pending", message: "Opening wallet browser…", at: Date.now() });
+    window.location.href = build(url);
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setHydrated(true), 50);
@@ -142,8 +174,28 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
   if (authLoading || !hydrated) return <Skeleton className="h-9 w-32 rounded-md" />;
 
   return (
+    <>
+    <Dialog open={androidModalOpen} onOpenChange={(open) => { setAndroidModalOpen(open); if (!open && handshake.message === "Open the app browser or continue with WalletConnect") setHandshake({ state: "idle" }); }}>
+      <DialogContent className="glass-card border-border sm:max-w-sm">
+        <DialogHeader><DialogTitle>Open installed wallet</DialogTitle></DialogHeader>
+        <div className="space-y-3 pt-2">
+          <p className="text-xs text-muted-foreground">Android browsers cannot detect Play Store wallets directly. Open this page inside your wallet browser, then tap Connect Wallet again.</p>
+          <div className="grid gap-2">
+            {ANDROID_WALLET_LINKS.map((wallet) => (
+              <Button key={wallet.name} variant="outline" className="justify-start border-primary/20 hover:bg-primary/10" onClick={() => openAndroidWallet(wallet.build)}>
+                <Smartphone className="w-4 h-4 mr-2 text-primary" /> {wallet.name}
+              </Button>
+            ))}
+          </div>
+          <Button className="w-full gold-gradient text-primary-foreground font-semibold" onClick={() => { setAndroidModalOpen(false); openConnectModalSafe.current?.(); }}>
+            Continue with WalletConnect
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
     <ConnectButton.Custom>
       {({ account, chain: rkChain, openConnectModal, mounted }) => {
+        openConnectModalSafe.current = openConnectModal;
         const ready = mounted;
         const connected = ready && !!account && !!rkChain;
         if (!ready) return <Skeleton className="h-9 w-32 rounded-md" />;
@@ -167,7 +219,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
           }
           return (
             <div className="flex items-center gap-2 flex-wrap">
-              <Button onClick={() => { setHandshake({ state: "pending", message: "Wallet modal opened — choose an installed wallet or WalletConnect", at: Date.now() }); openConnectModal(); }} size="sm" disabled={handshake.state === "pending" || noReadyWallets} className="gold-gradient text-primary-foreground font-semibold h-9 gap-2">
+              <Button onClick={() => { setHandshake({ state: "pending", message: isAndroidDevice && !hasInjectedProvider ? "Open the app browser or continue with WalletConnect" : "Wallet modal opened — choose a ready wallet", at: Date.now() }); isAndroidDevice && !hasInjectedProvider ? setAndroidModalOpen(true) : openConnectModal(); }} size="sm" disabled={handshake.state === "pending" || noReadyWallets} className="gold-gradient text-primary-foreground font-semibold h-9 gap-2">
                 <Wallet className="w-4 h-4" />
                 <span className="hidden xs:inline sm:inline">{handshake.state === "pending" ? "Opening…" : "Connect Wallet"}</span>
                 <span className="xs:hidden sm:hidden">{handshake.state === "pending" ? "…" : "Connect"}</span>
@@ -178,7 +230,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
               {(handshake.state === "error" || noReadyWallets) && (
                 <button
                   type="button"
-                  onClick={() => { try { resetConnect(); } catch { console.debug("Wallet reset ignored"); } setDiscoveryTick((n) => n + 1); setHandshake({ state: "idle" }); if (!noReadyWallets) openConnectModal(); }}
+                   onClick={() => { try { resetConnect(); } catch { console.debug("Wallet reset ignored"); } setDiscoveryTick((n) => n + 1); setHandshake({ state: "idle" }); if (!noReadyWallets) { isAndroidDevice && !hasInjectedProvider ? setAndroidModalOpen(true) : openConnectModal(); } }}
                   title={handshake.message || discoveryLabel}
                   className="inline-flex items-center gap-1 text-[11px] text-destructive max-w-[240px] truncate"
                 >
@@ -231,6 +283,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
         );
       }}
     </ConnectButton.Custom>
+    </>
   );
 };
 
