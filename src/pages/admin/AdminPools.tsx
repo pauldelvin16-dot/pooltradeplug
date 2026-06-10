@@ -11,6 +11,22 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 
+const CFD_CRYPTO_SYMBOLS = [
+  "BTCUSD", "ETHUSD", "BNBUSD", "SOLUSD", "XRPUSD", "ADAUSD", "DOGEUSD", "AVAXUSD",
+  "DOTUSD", "TRXUSD", "LINKUSD", "MATICUSD", "TONUSD", "LTCUSD", "BCHUSD", "UNIUSD",
+  "ATOMUSD", "NEARUSD", "APTUSD", "ARBUSD", "OPUSD", "SUIUSD", "SEIUSD", "INJUSD",
+  "RNDRUSD", "FILUSD", "ETCUSD", "XLMUSD", "HBARUSD", "AAVEUSD", "MKRUSD", "ICPUSD",
+  "PEPEUSD", "SHIBUSD", "FETUSD", "TIAUSD", "WIFUSD", "JUPUSD", "PYTHUSD", "ORDIUSD",
+];
+
+const POOL_TEMPLATES = [
+  { theme: "Momentum", risk: "Balanced", split: 72, days: 14, note: "breakout rotation, staggered entries, and daily settlement review" },
+  { theme: "Scalp Basket", risk: "Active", split: 68, days: 7, note: "short-duration CFD scalps with tight exposure windows" },
+  { theme: "Swing Alpha", risk: "Moderate", split: 75, days: 21, note: "multi-day trend capture with protected exit planning" },
+  { theme: "Yield Guard", risk: "Conservative", split: 65, days: 30, note: "lower-volatility allocation with capital-first settlement rules" },
+  { theme: "High Conviction", risk: "Aggressive", split: 80, days: 10, note: "focused volatility strategy for experienced pool participants" },
+];
+
 const AdminPools = () => {
   const queryClient = useQueryClient();
   const [poolDialogOpen, setPoolDialogOpen] = useState(false);
