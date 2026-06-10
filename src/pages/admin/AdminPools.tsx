@@ -114,20 +114,52 @@ const AdminPools = () => {
   });
 
   const generateDemoPool = () => {
-    const symbols = ["BTCUSD", "XAUUSD", "ETHUSD", "USDT Yield", "BNB Alpha"];
-    const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+    const symbol = CFD_CRYPTO_SYMBOLS[Math.floor(Math.random() * CFD_CRYPTO_SYMBOLS.length)];
+    const template = POOL_TEMPLATES[Math.floor(Math.random() * POOL_TEMPLATES.length)];
     const entry = [100, 250, 500, 1000][Math.floor(Math.random() * 4)];
     const max = [12, 20, 30, 50][Math.floor(Math.random() * 4)];
-    setPoolName(`${symbol} Prime Pool`);
+    setPoolName(`${symbol} ${template.theme} Pool`);
     setPoolSymbol(symbol);
     setPoolEntry(String(entry));
     setPoolTarget(String(Math.round(entry * max * (0.35 + Math.random()))));
     setPoolMaxParts(String(max));
-    setPoolDays(String([7, 14, 21, 30][Math.floor(Math.random() * 4)]));
-    setPoolSplit(String([65, 70, 75, 80][Math.floor(Math.random() * 4)]));
-    setPoolDesc(`Managed ${symbol} pool with live participant progress, visible profit tracking, and settlement updates.`);
+    setPoolDays(String(template.days));
+    setPoolSplit(String(template.split));
+    setPoolDesc(`${template.risk} ${symbol} CFD crypto trading pool using ${template.note}.`);
     setPoolRefund("If target is missed, eligible capital is refunded according to admin settlement review.");
   };
+
+  const autoGeneratePools = useMutation({
+    mutationFn: async () => {
+      const selected = [...CFD_CRYPTO_SYMBOLS].sort(() => Math.random() - 0.5).slice(0, 8);
+      const rows = selected.map((symbol, index) => {
+        const template = POOL_TEMPLATES[index % POOL_TEMPLATES.length];
+        const entry = [100, 150, 250, 500, 750, 1000][Math.floor(Math.random() * 6)];
+        const max = [10, 16, 24, 32, 40][Math.floor(Math.random() * 5)];
+        const days = template.days;
+        return {
+          name: `${symbol} ${template.theme} ${index + 1}`,
+          target_profit: Math.round(entry * max * (0.45 + Math.random() * 0.8)),
+          entry_amount: entry,
+          max_participants: max,
+          duration_days: days,
+          end_date: new Date(Date.now() + days * 86400000).toISOString(),
+          traded_symbol: symbol,
+          profit_split_percentage: template.split,
+          refund_policy: "Capital is settled by admin review; eligible users can request payout after pool completion.",
+          description: `${template.risk} auto-generated crypto CFD pool with ${template.note}.`,
+          status: index < 4 ? "active" : "draft",
+        };
+      });
+      const { error } = await supabase.from("pools").insert(rows as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Auto-generated 8 crypto CFD pools");
+      queryClient.invalidateQueries({ queryKey: ["admin-pools"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const openEdit = (pool: any) => {
     setEditingPool(pool);
