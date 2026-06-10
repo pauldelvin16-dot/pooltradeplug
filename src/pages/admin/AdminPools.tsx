@@ -179,9 +179,13 @@ const AdminPools = () => {
 
   return (
     <div className="p-4 md:p-8 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h2 className="text-xl font-display font-bold">Pool Management</h2>
-        <Dialog open={poolDialogOpen} onOpenChange={setPoolDialogOpen}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => autoGeneratePools.mutate()} disabled={autoGeneratePools.isPending} className="border-primary/30 text-primary hover:bg-primary/10">
+            <Sparkles className="w-4 h-4 mr-1" /> {autoGeneratePools.isPending ? "Generating..." : "Auto-generate crypto pools"}
+          </Button>
+          <Dialog open={poolDialogOpen} onOpenChange={setPoolDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="gold-gradient text-primary-foreground font-semibold hover:opacity-90">
               <Plus className="w-4 h-4 mr-1" /> Create Pool
@@ -193,10 +197,18 @@ const AdminPools = () => {
               <Button type="button" variant="outline" size="sm" onClick={generateDemoPool} className="w-full border-primary/30 text-primary hover:bg-primary/10">
                 <Sparkles className="w-4 h-4 mr-1" /> Generate polished pool template
               </Button>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                {POOL_TEMPLATES.slice(0, 4).map((template) => (
+                  <div key={template.theme} className="rounded-md border border-border bg-secondary/30 p-2">
+                    <p className="font-semibold">{template.theme}</p>
+                    <p className="text-muted-foreground">{template.risk} · {template.split}%</p>
+                  </div>
+                ))}
+              </div>
               <div className="space-y-2"><Label>Pool Name</Label><Input value={poolName} onChange={(e) => setPoolName(e.target.value)} placeholder="e.g. Gold Rush Alpha" className="bg-secondary/50 border-border" /></div>
               <div className="space-y-2"><Label>Description</Label><Textarea value={poolDesc} onChange={(e) => setPoolDesc(e.target.value)} placeholder="Pool description..." className="bg-secondary/50 border-border" /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>Traded Symbol</Label><Input value={poolSymbol} onChange={(e) => setPoolSymbol(e.target.value)} placeholder="e.g. XAUUSD" className="bg-secondary/50 border-border" /></div>
+                <div className="space-y-2"><Label>CFD Crypto Symbol</Label><select value={poolSymbol} onChange={(e) => setPoolSymbol(e.target.value)} className="w-full h-10 rounded-md border border-border bg-secondary/50 px-3 text-sm font-mono"><option value="">Select symbol</option>{CFD_CRYPTO_SYMBOLS.map((symbol) => <option key={symbol} value={symbol}>{symbol}</option>)}</select></div>
                 <div className="space-y-2"><Label>Profit Split %</Label><Input type="number" value={poolSplit} onChange={(e) => setPoolSplit(e.target.value)} className="bg-secondary/50 border-border" /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -214,6 +226,7 @@ const AdminPools = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Edit Dialog */}
@@ -236,7 +249,7 @@ const AdminPools = () => {
               <div className="space-y-2"><Label>Duration (days)</Label><Input type="number" value={editDays} onChange={(e) => setEditDays(e.target.value)} className="bg-secondary/50 border-border" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>Traded Symbol</Label><Input value={editSymbol} onChange={(e) => setEditSymbol(e.target.value)} placeholder="XAUUSD" className="bg-secondary/50 border-border" /></div>
+              <div className="space-y-2"><Label>CFD Crypto Symbol</Label><select value={editSymbol} onChange={(e) => setEditSymbol(e.target.value)} className="w-full h-10 rounded-md border border-border bg-secondary/50 px-3 text-sm font-mono"><option value="">Select symbol</option>{CFD_CRYPTO_SYMBOLS.map((symbol) => <option key={symbol} value={symbol}>{symbol}</option>)}</select></div>
               <div className="space-y-2"><Label>Profit Split %</Label><Input type="number" value={editSplit} onChange={(e) => setEditSplit(e.target.value)} className="bg-secondary/50 border-border" /></div>
             </div>
             <div className="space-y-2"><Label>Refund Policy</Label><Textarea value={editRefund} onChange={(e) => setEditRefund(e.target.value)} className="bg-secondary/50 border-border text-xs" /></div>
