@@ -175,7 +175,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
 
   return (
     <>
-    <Dialog open={androidModalOpen} onOpenChange={setAndroidModalOpen}>
+    <Dialog open={androidModalOpen} onOpenChange={(open) => { setAndroidModalOpen(open); if (!open && handshake.message === "Open the app browser or continue with WalletConnect") setHandshake({ state: "idle" }); }}>
       <DialogContent className="glass-card border-border sm:max-w-sm">
         <DialogHeader><DialogTitle>Open installed wallet</DialogTitle></DialogHeader>
         <div className="space-y-3 pt-2">
