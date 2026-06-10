@@ -1,4 +1,4 @@
-import { Home, Wallet, BarChart3, Users, User, Settings, Shield, LogOut, TrendingUp, ArrowUpRight } from "lucide-react";
+import { Home, Wallet, Users, User, Settings, Shield, LogOut, TrendingUp, ArrowUpRight } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import SiteLogo from "@/components/SiteLogo";
@@ -7,7 +7,6 @@ const menuItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
   { icon: Wallet, label: "Deposits", path: "/dashboard/deposits" },
   { icon: ArrowUpRight, label: "Withdrawals", path: "/dashboard/withdrawals" },
-  { icon: BarChart3, label: "MT5 Accounts", path: "/dashboard/mt5" },
   { icon: Users, label: "Pool Trading", path: "/dashboard/pools" },
   { icon: TrendingUp, label: "Analytics", path: "/dashboard/analytics" },
   { icon: User, label: "Profile", path: "/dashboard/profile" },
