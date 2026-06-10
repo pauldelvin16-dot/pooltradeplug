@@ -42,7 +42,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
   const { disconnect } = useDisconnect();
   const { status: connectStatus, error: connectError, reset: resetConnect } = useConnect();
   const [hydrated, setHydrated] = useState(false);
-  const [, setDiscoveryTick] = useState(0);
+  const [discoveryTick, setDiscoveryTick] = useState(0);
   const [androidModalOpen, setAndroidModalOpen] = useState(false);
   const [handshake, setHandshake] = useState<{ state: "idle" | "pending" | "ok" | "error"; message?: string; at?: number }>({ state: "idle" });
   const handshakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -66,7 +66,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
       if (provider?.isRainbow) names.add("Rainbow");
     });
     return { hasProvider: !!eth, names: Array.from(names) };
-  }, [hydrated]);
+  }, [hydrated, discoveryTick]);
   const hasInjectedProvider = walletSignals.hasProvider;
   const noReadyWallets = !hasInjectedProvider && !web3Ready;
   const discoveryLabel = hasInjectedProvider
