@@ -1,4 +1,4 @@
-import { DollarSign, TrendingUp, BarChart3, Users, ArrowUpRight, ArrowDownRight, Bell } from "lucide-react";
+import { DollarSign, TrendingUp, BarChart3, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
