@@ -1,5 +1,5 @@
 import { 
-  Eye, Users, BarChart3, Wallet, Trophy, Settings, 
+  Eye, Users, Wallet, Trophy, Settings, 
   MessageSquare, Bot, ArrowUpRight, Home, LogOut, Network
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -14,7 +14,6 @@ import SiteLogo from "@/components/SiteLogo";
 const items = [
   { title: "Overview", url: "/admin", icon: Eye },
   { title: "Users", url: "/admin/users", icon: Users },
-  { title: "MT5 Accounts", url: "/admin/mt5", icon: BarChart3 },
   { title: "Deposits", url: "/admin/deposits", icon: Wallet },
   { title: "Withdrawals", url: "/admin/withdrawals", icon: ArrowUpRight },
   { title: "Pools", url: "/admin/pools", icon: Trophy },
