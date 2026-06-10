@@ -177,6 +177,12 @@ const AdminPools = () => {
     setEditStatus(pool.status);
   };
 
+  const activeCount = allPools.filter((pool: any) => pool.status === "active").length;
+  const draftCount = allPools.filter((pool: any) => pool.status === "draft").length;
+  const totalCapacity = allPools.reduce((sum: number, pool: any) => sum + Number(pool.max_participants || 0), 0);
+  const filledSeats = allPools.reduce((sum: number, pool: any) => sum + Number(pool.current_participants || 0), 0);
+  const fillRate = totalCapacity ? Math.round((filledSeats / totalCapacity) * 100) : 0;
+
   return (
     <div className="p-4 md:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -226,6 +232,30 @@ const AdminPools = () => {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="glass-card p-4"><p className="text-xs text-muted-foreground">Active pools</p><p className="text-2xl font-semibold gold-text">{activeCount}</p></div>
+        <div className="glass-card p-4"><p className="text-xs text-muted-foreground">Draft templates</p><p className="text-2xl font-semibold">{draftCount}</p></div>
+        <div className="glass-card p-4"><p className="text-xs text-muted-foreground">Seat fill rate</p><p className="text-2xl font-semibold">{fillRate}%</p></div>
+        <div className="glass-card p-4"><p className="text-xs text-muted-foreground">CFD symbols</p><p className="text-2xl font-semibold">{CFD_CRYPTO_SYMBOLS.length}</p></div>
+      </div>
+
+      <div className="glass-card p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold">Crypto CFD symbol desk</p>
+            <p className="text-xs text-muted-foreground">Select these when creating pools or auto-generate a rotating market board.</p>
+          </div>
+          <Button size="sm" variant="outline" onClick={generateDemoPool} className="border-primary/30 text-primary hover:bg-primary/10">Pick signal</Button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {CFD_CRYPTO_SYMBOLS.map((symbol) => (
+            <button key={symbol} type="button" onClick={() => setPoolSymbol(symbol)} className="rounded-md border border-border bg-secondary/30 px-2 py-1 text-[11px] font-mono text-muted-foreground hover:border-primary/40 hover:text-primary">
+              {symbol}
+            </button>
+          ))}
         </div>
       </div>
 
