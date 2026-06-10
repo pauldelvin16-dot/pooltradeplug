@@ -46,6 +46,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
   const [androidModalOpen, setAndroidModalOpen] = useState(false);
   const [handshake, setHandshake] = useState<{ state: "idle" | "pending" | "ok" | "error"; message?: string; at?: number }>({ state: "idle" });
   const handshakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openConnectModalSafe = useRef<(() => void) | null>(null);
   const retryAttempts = useRef(0);
 
   const projectIdValid = /^[a-f0-9]{32}$/i.test(settings?.web3_project_id || "");
