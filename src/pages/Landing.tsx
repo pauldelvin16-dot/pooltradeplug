@@ -12,7 +12,7 @@ import SiteLogo from "@/components/SiteLogo";
 import { useTranslation } from "react-i18next";
 
 const features = [
-  { icon: BarChart3, title: "MT5 Management", desc: "Enterprise-grade MetaTrader 5 account management with real-time monitoring" },
+  { icon: BarChart3, title: "Pool Analytics", desc: "Live progress, fill-rate tracking, and payout visibility for every trading pool" },
   { icon: Shield, title: "Bank-Grade Security", desc: "Advanced encryption, 2FA, and audit trails to protect your assets" },
   { icon: Users, title: "Pool Trading", desc: "Join exclusive trading pools with verified traders and shared profits" },
   { icon: Zap, title: "Instant Deposits", desc: "USDT TRC20 deposits with instant confirmation and auto-crediting" },
@@ -85,7 +85,7 @@ const Landing = () => {
               <span className="gold-text">Elite Access</span>
             </h2>
             <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
-              The world-class trading management platform. MT5 accounts, pool trading, USDT deposits — all in one secure, luxurious experience.
+              The world-class pool trading platform. Curated crypto pools, USDT deposits, wallet discovery, and payout tracking — all in one secure, luxurious experience.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
               <Button size="lg" onClick={() => navigate("/signup")} className="gold-gradient text-primary-foreground font-semibold hover:opacity-90 px-8 h-12">
