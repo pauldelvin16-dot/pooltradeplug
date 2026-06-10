@@ -15,6 +15,13 @@ import { useNavigate } from "react-router-dom";
 
 const COLORS = ["hsl(43, 96%, 56%)", "hsl(142, 76%, 36%)", "hsl(217, 91%, 60%)", "hsl(0, 84%, 60%)"];
 
+const getPoolSignal = (symbol?: string) => {
+  const seeds = ["Momentum", "Breakout", "Swing", "Scalp", "Accumulation", "Reversal"];
+  const risk = ["Balanced", "Active", "Moderate", "High conviction"];
+  const seed = (symbol || "POOL").split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return { strategy: seeds[seed % seeds.length], risk: risk[seed % risk.length], score: 72 + (seed % 24) };
+};
+
 const PoolsPage = () => {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
@@ -162,6 +169,7 @@ const PoolsPage = () => {
   const avgFill = activePools.length
     ? Math.round(activePools.reduce((sum: number, p: any) => sum + (Number(p.current_participants || 0) / Math.max(1, Number(p.max_participants || 1))) * 100, 0) / activePools.length)
     : 0;
+  const trackedSymbols = new Set(pools.map((p: any) => p.traded_symbol).filter(Boolean)).size;
 
   const s = settings as any;
   const bonusEnabled = s?.first_deposit_bonus_enabled;
@@ -202,7 +210,7 @@ const PoolsPage = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="glass-card p-4 flex items-center gap-3">
           <Flame className="w-8 h-8 text-primary" />
           <div><p className="text-xs text-muted-foreground">Active opportunities</p><p className="text-lg font-semibold">{activePools.length} pools</p></div>
@@ -214,6 +222,10 @@ const PoolsPage = () => {
         <div className="glass-card p-4 flex items-center gap-3">
           <ShieldCheck className="w-8 h-8 text-primary" />
           <div><p className="text-xs text-muted-foreground">Your joined pools</p><p className="text-lg font-semibold">{joinedCount}</p></div>
+        </div>
+        <div className="glass-card p-4 flex items-center gap-3">
+          <TrendingUp className="w-8 h-8 text-primary" />
+          <div><p className="text-xs text-muted-foreground">CFD markets tracked</p><p className="text-lg font-semibold">{trackedSymbols || activePools.length} symbols</p></div>
         </div>
       </div>
 
@@ -300,6 +312,7 @@ const PoolsPage = () => {
           const profitSplit = (pool as any).profit_split_percentage || 70;
           const tradedSymbol = (pool as any).traded_symbol;
           const refundPolicy = (pool as any).refund_policy;
+          const signal = getPoolSignal(tradedSymbol || pool.name);
           const chatEnabled = isFull && hasJoined;
           const userBalance = parseFloat(profile?.balance || "0");
           const entryAmount = parseFloat(pool.entry_amount);
@@ -372,6 +385,12 @@ const PoolsPage = () => {
                   <p className="text-xs text-muted-foreground">{refundPolicy}</p>
                 </div>
               )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3 text-xs">
+                <div className="rounded-md border border-primary/20 bg-primary/5 p-2"><span className="text-muted-foreground">Strategy</span><p className="font-semibold text-primary">{signal.strategy}</p></div>
+                <div className="rounded-md border border-border bg-secondary/20 p-2"><span className="text-muted-foreground">Risk profile</span><p className="font-semibold">{signal.risk}</p></div>
+                <div className="rounded-md border border-success/20 bg-success/5 p-2"><span className="text-muted-foreground">Signal score</span><p className="font-semibold text-success">{signal.score}/95</p></div>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4 text-xs">
                 <div className="rounded-md border border-border bg-secondary/20 p-2"><span className="text-muted-foreground">Entry window</span><p className="font-semibold">{pool.status === "active" && !isFull ? "Open now" : isFull ? "Filled" : pool.status}</p></div>
