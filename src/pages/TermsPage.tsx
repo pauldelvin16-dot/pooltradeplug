@@ -32,8 +32,8 @@ const TermsPage = () => {
             <p>Deposits are processed in USDT (TRC20) only. Users must verify wallet addresses before sending. The Platform is not responsible for funds sent to incorrect addresses. Withdrawal processing times may vary.</p>
           </section>
           <section>
-            <h2 className="text-lg font-semibold text-foreground">6. MT5 Account Management</h2>
-            <p>MT5 accounts are subject to allocation limits set by administrators. Availability may be restricted at any time. The Platform reserves the right to disable MT5 features for maintenance or compliance purposes.</p>
+            <h2 className="text-lg font-semibold text-foreground">6. Pool Lifecycle & Payouts</h2>
+            <p>Trading pools may be drafted, activated, paused, completed, cancelled, or archived by administrators. Payout availability depends on pool status, participant eligibility, and administrator settlement review.</p>
           </section>
           <section>
             <h2 className="text-lg font-semibold text-foreground">7. Limitation of Liability</h2>
