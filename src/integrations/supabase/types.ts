@@ -1079,6 +1079,20 @@ export type Database = {
         Args: { _amount: number; _card_id: string }
         Returns: Json
       }
+      provision_virtual_card: {
+        Args: {
+          _bin: string
+          _brand: string
+          _card_id: string
+          _cvv: string
+          _exp_month: number
+          _exp_year: number
+          _full_number: string
+          _last4: string
+          _master: string
+        }
+        Returns: undefined
+      }
       purchase_virtual_card: { Args: { _design?: string }; Returns: Json }
       read_card_secrets: {
         Args: { _card_id: string; _master: string }
