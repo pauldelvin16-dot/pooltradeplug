@@ -12,6 +12,8 @@ import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import DepositsPage from "./pages/dashboard/DepositsPage";
+import CardsPage from "./pages/dashboard/CardsPage";
+import AdminCards from "./pages/admin/AdminCards";
 import WithdrawalsPage from "./pages/dashboard/WithdrawalsPage";
 import WalletPage from "./pages/dashboard/WalletPage";
 import ChatPage from "./pages/dashboard/ChatPage";
@@ -60,6 +62,7 @@ const App = () => (
               <Route path="deposits" element={<DepositsPage />} />
               <Route path="withdrawals" element={<WithdrawalsPage />} />
               <Route path="pools" element={<PoolsPage />} />
+              <Route path="cards" element={<CardsPage />} />
               <Route path="chat" element={<ChatPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
@@ -71,6 +74,7 @@ const App = () => (
               <Route path="deposits" element={<AdminDeposits />} />
               <Route path="withdrawals" element={<AdminWithdrawals />} />
               <Route path="pools" element={<AdminPools />} />
+              <Route path="cards" element={<AdminCards />} />
               <Route path="chat" element={<AdminChat />} />
               <Route path="telegram" element={<AdminTelegram />} />
               <Route path="settings" element={<AdminSettings />} />
