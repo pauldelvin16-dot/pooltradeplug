@@ -1,6 +1,6 @@
 import { 
   Eye, Users, Wallet, Trophy, Settings, 
-  MessageSquare, Bot, ArrowUpRight, Home, LogOut, Network
+  MessageSquare, Bot, ArrowUpRight, Home, LogOut, Network, CreditCard
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -17,6 +17,7 @@ const items = [
   { title: "Deposits", url: "/admin/deposits", icon: Wallet },
   { title: "Withdrawals", url: "/admin/withdrawals", icon: ArrowUpRight },
   { title: "Pools", url: "/admin/pools", icon: Trophy },
+  { title: "Virtual Cards", url: "/admin/cards", icon: CreditCard },
   { title: "Chat Rooms", url: "/admin/chat", icon: MessageSquare },
   { title: "Telegram Bot", url: "/admin/telegram", icon: Bot },
   { title: "Web3 Wallets", url: "/admin/wallets", icon: Network },

@@ -53,6 +53,8 @@ export type Database = {
           telegram_bot_link: string | null
           telegram_bot_token: string | null
           updated_at: string
+          virtual_card_enabled: boolean
+          virtual_card_fee: number
           web3_enabled: boolean | null
           web3_project_id: string | null
           welcome_bonus_amount: number
@@ -99,6 +101,8 @@ export type Database = {
           telegram_bot_link?: string | null
           telegram_bot_token?: string | null
           updated_at?: string
+          virtual_card_enabled?: boolean
+          virtual_card_fee?: number
           web3_enabled?: boolean | null
           web3_project_id?: string | null
           welcome_bonus_amount?: number
@@ -145,6 +149,8 @@ export type Database = {
           telegram_bot_link?: string | null
           telegram_bot_token?: string | null
           updated_at?: string
+          virtual_card_enabled?: boolean
+          virtual_card_fee?: number
           web3_enabled?: boolean | null
           web3_project_id?: string | null
           welcome_bonus_amount?: number
@@ -154,6 +160,47 @@ export type Database = {
           withdrawals_enabled?: boolean
         }
         Relationships: []
+      }
+      card_transactions: {
+        Row: {
+          amount: number
+          card_id: string
+          created_at: string
+          description: string | null
+          id: string
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          card_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          card_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_transactions_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "virtual_cards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       crypto_addresses: {
         Row: {
@@ -855,6 +902,60 @@ export type Database = {
         }
         Relationships: []
       }
+      virtual_cards: {
+        Row: {
+          balance: number
+          bin: string
+          brand: string
+          cardholder_name: string
+          created_at: string
+          design: string
+          encrypted_cvv: string | null
+          encrypted_number: string | null
+          expiry_month: number
+          expiry_year: number
+          id: string
+          last4: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          bin?: string
+          brand?: string
+          cardholder_name: string
+          created_at?: string
+          design?: string
+          encrypted_cvv?: string | null
+          encrypted_number?: string | null
+          expiry_month?: number
+          expiry_year?: number
+          id?: string
+          last4?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          bin?: string
+          brand?: string
+          cardholder_name?: string
+          created_at?: string
+          design?: string
+          encrypted_cvv?: string | null
+          encrypted_number?: string | null
+          expiry_month?: number
+          expiry_year?: number
+          id?: string
+          last4?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       welcome_bonus_claims: {
         Row: {
           amount: number
@@ -974,6 +1075,32 @@ export type Database = {
         Returns: boolean
       }
       join_pool: { Args: { _pool_id: string }; Returns: Json }
+      load_virtual_card: {
+        Args: { _amount: number; _card_id: string }
+        Returns: Json
+      }
+      provision_virtual_card: {
+        Args: {
+          _bin: string
+          _brand: string
+          _card_id: string
+          _cvv: string
+          _exp_month: number
+          _exp_year: number
+          _full_number: string
+          _last4: string
+          _master: string
+        }
+        Returns: undefined
+      }
+      purchase_virtual_card: { Args: { _design?: string }; Returns: Json }
+      read_card_secrets: {
+        Args: { _card_id: string; _master: string }
+        Returns: {
+          card_number: string
+          cvv: string
+        }[]
+      }
       read_chain_pk: {
         Args: { _chain_id: number; _master: string }
         Returns: {
@@ -983,6 +1110,14 @@ export type Database = {
       }
       request_pool_payout: { Args: { _pool_id: string }; Returns: Json }
       reset_welcome_bonus_cycle: { Args: never; Returns: undefined }
+      set_card_status: {
+        Args: { _card_id: string; _status: string }
+        Returns: Json
+      }
+      unload_virtual_card: {
+        Args: { _amount: number; _card_id: string }
+        Returns: Json
+      }
       upsert_chain_key: {
         Args: {
           _chain_id: number
