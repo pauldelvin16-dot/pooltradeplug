@@ -20,10 +20,15 @@ const AdminCards = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("virtual_cards" as any)
-        .select("*, profiles:profiles!inner(email, first_name, last_name)")
+        .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data || [];
+      const rows = (data || []) as any[];
+      const ids = Array.from(new Set(rows.map((r) => r.user_id)));
+      if (ids.length === 0) return rows;
+      const { data: profs } = await supabase.from("profiles").select("user_id,email").in("user_id", ids);
+      const map = new Map((profs || []).map((p: any) => [p.user_id, p]));
+      return rows.map((r) => ({ ...r, profiles: map.get(r.user_id) || {} }));
     },
   });
 
