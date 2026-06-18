@@ -197,14 +197,14 @@ const DepositsPage = () => {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <div className="glass-card p-6 space-y-6">
+        <div ref={formRef} className="glass-card p-6 space-y-6 scroll-mt-20">
           <h3 className="font-semibold flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             {activeDeposit ? "Complete Your Deposit" : "New Deposit"}
           </h3>
 
           {!activeDeposit ? (
-            <div className="space-y-4">
+            <div ref={networkRef} className="space-y-4 scroll-mt-20">
               {addresses.length > 0 && (
                 <div className="space-y-2">
                   <Label>Select Network</Label>
