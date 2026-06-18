@@ -197,6 +197,30 @@ const PoolsPage = () => {
     : 0;
   const trackedSymbols = new Set(pools.map((p: any) => p.traded_symbol).filter(Boolean)).size;
 
+  const filteredPools = useMemo(() => {
+    return pools.filter((p: any) => {
+      const joined = joinedPoolIds.has(p.id);
+      const full = p.current_participants >= p.max_participants;
+      switch (filter) {
+        case "open": return p.status === "active" && !full;
+        case "joined": return joined;
+        case "live": return p.status === "active" && full;
+        case "watchlist": return watchlist.includes(p.id);
+        case "completed": return ["completed", "failed", "cancelled"].includes(p.status);
+        default: return true;
+      }
+    });
+  }, [pools, filter, joinedPoolIds, watchlist]);
+
+  const filterTabs: { key: PoolFilter; label: string; count: number }[] = [
+    { key: "all", label: "All", count: pools.length },
+    { key: "open", label: "Open", count: pools.filter((p: any) => p.status === "active" && p.current_participants < p.max_participants).length },
+    { key: "live", label: "Live", count: pools.filter((p: any) => p.status === "active" && p.current_participants >= p.max_participants).length },
+    { key: "joined", label: "Joined", count: joinedCount },
+    { key: "watchlist", label: "Watchlist", count: watchlist.length },
+    { key: "completed", label: "Completed", count: pools.filter((p: any) => ["completed", "failed", "cancelled"].includes(p.status)).length },
+  ];
+
   const s = settings as any;
   const bonusEnabled = s?.first_deposit_bonus_enabled;
   const bonusMin = s?.first_deposit_min_amount;
