@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { useCryptoAddresses, useAdminSettings } from "@/hooks/useAdminSettings";
 import { toast } from "sonner";
 import UserWalletsCard from "@/components/web3/UserWalletsCard";
+import WalletVirtualCardPreview from "@/components/wallet/WalletVirtualCardPreview";
 
 type Mode = "deposit" | "withdraw";
 type HistTab = "deposits" | "withdrawals";
@@ -188,6 +189,9 @@ const WalletPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Virtual card preview (mobile/tablet) */}
+      <WalletVirtualCardPreview />
 
       {/* Action panel — content changes inline */}
       <div className="glass-card p-4 md:p-6">

@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from "react";
-import { Users, Target, Clock, Trophy, ArrowRight, MessageSquare, Send, TrendingUp, AlertTriangle, Gift, ShieldCheck, Flame, BarChart3 } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Users, Target, Clock, Trophy, ArrowRight, MessageSquare, Send, TrendingUp, AlertTriangle, Gift, ShieldCheck, Flame, BarChart3, Star, Share2, Sparkles, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import StatusBadge from "@/components/StatusBadge";
 import SimulatedPoolHistory from "@/components/SimulatedPoolHistory";
+import PoolCountdown from "@/components/PoolCountdown";
+import { copyText } from "@/lib/clipboard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
@@ -12,6 +14,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useNavigate } from "react-router-dom";
+
+type PoolFilter = "all" | "open" | "joined" | "live" | "watchlist" | "completed";
+const WATCHLIST_KEY = "tradelux:pool-watchlist";
+const loadWatch = (): string[] => { try { return JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]"); } catch { return []; } };
+const saveWatch = (ids: string[]) => localStorage.setItem(WATCHLIST_KEY, JSON.stringify(ids));
+
 
 const COLORS = ["hsl(43, 96%, 56%)", "hsl(142, 76%, 36%)", "hsl(217, 91%, 60%)", "hsl(0, 84%, 60%)"];
 
@@ -30,6 +38,24 @@ const PoolsPage = () => {
   const [selectedPoolChat, setSelectedPoolChat] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const [filter, setFilter] = useState<PoolFilter>("all");
+  const [watchlist, setWatchlist] = useState<string[]>(loadWatch());
+  const toggleWatch = (id: string) => {
+    setWatchlist((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      saveWatch(next);
+      return next;
+    });
+  };
+  const sharePool = async (pool: any) => {
+    const url = `${window.location.origin}/dashboard/pools#${pool.id}`;
+    const text = `Join the ${pool.name} trading pool on TradeLux`;
+    if (navigator.share) {
+      try { await navigator.share({ title: pool.name, text, url }); return; } catch {}
+    }
+    if (await copyText(url)) toast.success("Pool link copied");
+  };
 
   const { data: pools = [] } = useQuery({
     queryKey: ["pools"],
@@ -171,6 +197,30 @@ const PoolsPage = () => {
     : 0;
   const trackedSymbols = new Set(pools.map((p: any) => p.traded_symbol).filter(Boolean)).size;
 
+  const filteredPools = useMemo(() => {
+    return pools.filter((p: any) => {
+      const joined = joinedPoolIds.has(p.id);
+      const full = p.current_participants >= p.max_participants;
+      switch (filter) {
+        case "open": return p.status === "active" && !full;
+        case "joined": return joined;
+        case "live": return p.status === "active" && full;
+        case "watchlist": return watchlist.includes(p.id);
+        case "completed": return ["completed", "failed", "cancelled"].includes(p.status);
+        default: return true;
+      }
+    });
+  }, [pools, filter, joinedPoolIds, watchlist]);
+
+  const filterTabs: { key: PoolFilter; label: string; count: number }[] = [
+    { key: "all", label: "All", count: pools.length },
+    { key: "open", label: "Open", count: pools.filter((p: any) => p.status === "active" && p.current_participants < p.max_participants).length },
+    { key: "live", label: "Live", count: pools.filter((p: any) => p.status === "active" && p.current_participants >= p.max_participants).length },
+    { key: "joined", label: "Joined", count: joinedCount },
+    { key: "watchlist", label: "Watchlist", count: watchlist.length },
+    { key: "completed", label: "Completed", count: pools.filter((p: any) => ["completed", "failed", "cancelled"].includes(p.status)).length },
+  ];
+
   const s = settings as any;
   const bonusEnabled = s?.first_deposit_bonus_enabled;
   const bonusMin = s?.first_deposit_min_amount;
@@ -303,8 +353,34 @@ const PoolsPage = () => {
         </div>
       )}
 
+      {/* Filter tabs */}
+      {pools.length > 0 && (
+        <div className="glass-card p-2 flex items-center gap-2 overflow-x-auto">
+          <Filter className="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
+          {filterTabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setFilter(t.key)}
+              className={`shrink-0 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                filter === t.key
+                  ? "bg-primary/20 text-primary border border-primary/30"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+              }`}
+            >
+              {t.label} <span className="opacity-60">({t.count})</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {filteredPools.length === 0 && pools.length > 0 && (
+        <div className="glass-card p-8 text-center text-sm text-muted-foreground">
+          No pools match this filter. Try another tab above.
+        </div>
+      )}
+
       <div className="grid gap-6">
-        {pools.map((pool: any) => {
+        {filteredPools.map((pool: any) => {
           const profitPercent = (parseFloat(pool.current_profit) / parseFloat(pool.target_profit)) * 100;
           const isFull = pool.current_participants >= pool.max_participants;
           const hasJoined = joinedPoolIds.has(pool.id);
@@ -318,15 +394,25 @@ const PoolsPage = () => {
           const entryAmount = parseFloat(pool.entry_amount);
           const canAfford = userBalance >= entryAmount;
 
+          const watched = watchlist.includes(pool.id);
+          const spotsLeft = Math.max(0, pool.max_participants - pool.current_participants);
+          const fillPct = (pool.current_participants / Math.max(1, pool.max_participants)) * 100;
+          const isHot = fillPct >= 75 && !isFull && pool.status === "active";
+
           return (
-            <div key={pool.id} className="glass-card-hover p-6">
+            <div key={pool.id} id={pool.id} className="glass-card-hover p-6 animate-fade-in relative">
+              {isHot && (
+                <span className="absolute -top-2 left-4 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning text-warning-foreground text-[10px] font-bold uppercase tracking-wider shadow-md">
+                  <Flame className="w-3 h-3" /> Hot · {spotsLeft} spots left
+                </span>
+              )}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl gold-gradient flex items-center justify-center">
                     <Trophy className="w-6 h-6 text-primary-foreground" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-lg">{pool.name}</h3>
                       {tradedSymbol && (
                         <span className="text-xs px-2 py-0.5 rounded bg-accent/20 text-accent-foreground font-mono font-bold">{tradedSymbol}</span>
@@ -335,7 +421,7 @@ const PoolsPage = () => {
                     {pool.description && <p className="text-xs text-muted-foreground">{pool.description}</p>}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {isFull && pool.status === "active" && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/15 border border-success/30 text-success text-[10px] font-bold uppercase tracking-wider">
                       <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
@@ -343,8 +429,23 @@ const PoolsPage = () => {
                     </span>
                   )}
                   <StatusBadge status={pool.status} />
+                  <button
+                    onClick={() => toggleWatch(pool.id)}
+                    title={watched ? "Remove from watchlist" : "Add to watchlist"}
+                    className={`p-1.5 rounded-md border transition-all ${watched ? "bg-primary/15 border-primary/40 text-primary" : "border-border text-muted-foreground hover:text-primary hover:border-primary/30"}`}
+                  >
+                    <Star className={`w-3.5 h-3.5 ${watched ? "fill-current" : ""}`} />
+                  </button>
+                  <button
+                    onClick={() => sharePool(pool)}
+                    title="Share pool"
+                    className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-all"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
+
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                 <div className="space-y-1">
@@ -361,7 +462,7 @@ const PoolsPage = () => {
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Time Left</p>
-                  <p className="font-semibold">{daysLeft > 0 ? `${daysLeft} days` : "Completed"}</p>
+                  <p className="font-semibold"><PoolCountdown endDate={pool.end_date} fallbackDays={pool.duration_days} compact /></p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Profit Split</p>
