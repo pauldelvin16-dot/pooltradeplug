@@ -462,7 +462,7 @@ const PoolsPage = () => {
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Time Left</p>
-                  <p className="font-semibold">{daysLeft > 0 ? `${daysLeft} days` : "Completed"}</p>
+                  <p className="font-semibold"><PoolCountdown endDate={pool.end_date} fallbackDays={pool.duration_days} compact /></p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Profit Split</p>
