@@ -155,8 +155,14 @@ const DepositsPage = () => {
     const pending = deposits.find((d: any) =>
       d.status === "pending" && d.expires_at && new Date(d.expires_at).getTime() > Date.now()
     );
-    if (pending) setActiveDeposit(pending);
+    if (pending) { setActiveDeposit(pending); scrollToForm("active"); }
   }, [deposits, activeDeposit]);
+
+  // On mobile, scroll the network/address form into view on mount so the virtual card preview doesn't hide it
+  useEffect(() => {
+    scrollToForm(activeDeposit ? "active" : "network");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const copyAddress = async (addr: string) => {
     const ok = await copyText(addr);
