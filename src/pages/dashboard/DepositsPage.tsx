@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Copy, CheckCircle, Clock, RefreshCw, Radar, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,17 @@ import { useSearchParams } from "react-router-dom";
 import { copyText } from "@/lib/clipboard";
 
 const DepositsPage = () => {
+  const formRef = useRef<HTMLDivElement | null>(null);
+  const networkRef = useRef<HTMLDivElement | null>(null);
+  const activeRef = useRef<HTMLDivElement | null>(null);
+  const scrollToForm = (target: "network" | "active") => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(min-width: 1024px)").matches) return;
+    requestAnimationFrame(() => {
+      const node = target === "active" ? activeRef.current : networkRef.current;
+      (node || formRef.current)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
@@ -74,6 +85,7 @@ const DepositsPage = () => {
       setActiveDeposit(data);
       toast.success(`Invoice created — send exactly ${Number(data.amount).toFixed(4)} ${data.currency} to auto-credit.`);
       queryClient.invalidateQueries({ queryKey: ["deposits"] });
+      scrollToForm("active");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -143,8 +155,14 @@ const DepositsPage = () => {
     const pending = deposits.find((d: any) =>
       d.status === "pending" && d.expires_at && new Date(d.expires_at).getTime() > Date.now()
     );
-    if (pending) setActiveDeposit(pending);
+    if (pending) { setActiveDeposit(pending); scrollToForm("active"); }
   }, [deposits, activeDeposit]);
+
+  // On mobile, scroll the network/address form into view on mount so the virtual card preview doesn't hide it
+  useEffect(() => {
+    scrollToForm(activeDeposit ? "active" : "network");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const copyAddress = async (addr: string) => {
     const ok = await copyText(addr);
@@ -179,14 +197,14 @@ const DepositsPage = () => {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <div className="glass-card p-6 space-y-6">
+        <div ref={formRef} className="glass-card p-6 space-y-6 scroll-mt-20">
           <h3 className="font-semibold flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             {activeDeposit ? "Complete Your Deposit" : "New Deposit"}
           </h3>
 
           {!activeDeposit ? (
-            <div className="space-y-4">
+            <div ref={networkRef} className="space-y-4 scroll-mt-20">
               {addresses.length > 0 && (
                 <div className="space-y-2">
                   <Label>Select Network</Label>
@@ -224,7 +242,7 @@ const DepositsPage = () => {
               </Button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div ref={activeRef} className="space-y-4 scroll-mt-20">
               {/* Countdown */}
               <div className="p-3 rounded-lg bg-warning/10 border border-warning/20">
                 <DepositCountdown
