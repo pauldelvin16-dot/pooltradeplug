@@ -353,8 +353,34 @@ const PoolsPage = () => {
         </div>
       )}
 
+      {/* Filter tabs */}
+      {pools.length > 0 && (
+        <div className="glass-card p-2 flex items-center gap-2 overflow-x-auto">
+          <Filter className="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
+          {filterTabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setFilter(t.key)}
+              className={`shrink-0 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                filter === t.key
+                  ? "bg-primary/20 text-primary border border-primary/30"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+              }`}
+            >
+              {t.label} <span className="opacity-60">({t.count})</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {filteredPools.length === 0 && pools.length > 0 && (
+        <div className="glass-card p-8 text-center text-sm text-muted-foreground">
+          No pools match this filter. Try another tab above.
+        </div>
+      )}
+
       <div className="grid gap-6">
-        {pools.map((pool: any) => {
+        {filteredPools.map((pool: any) => {
           const profitPercent = (parseFloat(pool.current_profit) / parseFloat(pool.target_profit)) * 100;
           const isFull = pool.current_participants >= pool.max_participants;
           const hasJoined = joinedPoolIds.has(pool.id);
