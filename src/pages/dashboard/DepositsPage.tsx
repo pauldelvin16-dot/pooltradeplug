@@ -242,7 +242,7 @@ const DepositsPage = () => {
               </Button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div ref={activeRef} className="space-y-4 scroll-mt-20">
               {/* Countdown */}
               <div className="p-3 rounded-lg bg-warning/10 border border-warning/20">
                 <DepositCountdown
