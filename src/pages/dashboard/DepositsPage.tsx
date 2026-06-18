@@ -85,6 +85,7 @@ const DepositsPage = () => {
       setActiveDeposit(data);
       toast.success(`Invoice created — send exactly ${Number(data.amount).toFixed(4)} ${data.currency} to auto-credit.`);
       queryClient.invalidateQueries({ queryKey: ["deposits"] });
+      scrollToForm("active");
     },
     onError: (e: Error) => toast.error(e.message),
   });
