@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Copy, CheckCircle, Clock, RefreshCw, Radar, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,17 @@ import { useSearchParams } from "react-router-dom";
 import { copyText } from "@/lib/clipboard";
 
 const DepositsPage = () => {
+  const formRef = useRef<HTMLDivElement | null>(null);
+  const networkRef = useRef<HTMLDivElement | null>(null);
+  const activeRef = useRef<HTMLDivElement | null>(null);
+  const scrollToForm = (target: "network" | "active") => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(min-width: 1024px)").matches) return;
+    requestAnimationFrame(() => {
+      const node = target === "active" ? activeRef.current : networkRef.current;
+      (node || formRef.current)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
