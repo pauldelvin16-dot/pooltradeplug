@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from "react";
-import { Users, Target, Clock, Trophy, ArrowRight, MessageSquare, Send, TrendingUp, AlertTriangle, Gift, ShieldCheck, Flame, BarChart3 } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Users, Target, Clock, Trophy, ArrowRight, MessageSquare, Send, TrendingUp, AlertTriangle, Gift, ShieldCheck, Flame, BarChart3, Star, Share2, Sparkles, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import StatusBadge from "@/components/StatusBadge";
 import SimulatedPoolHistory from "@/components/SimulatedPoolHistory";
+import PoolCountdown from "@/components/PoolCountdown";
+import { copyText } from "@/lib/clipboard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
@@ -12,6 +14,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useNavigate } from "react-router-dom";
+
+type PoolFilter = "all" | "open" | "joined" | "live" | "watchlist" | "completed";
+const WATCHLIST_KEY = "tradelux:pool-watchlist";
+const loadWatch = (): string[] => { try { return JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]"); } catch { return []; } };
+const saveWatch = (ids: string[]) => localStorage.setItem(WATCHLIST_KEY, JSON.stringify(ids));
+
 
 const COLORS = ["hsl(43, 96%, 56%)", "hsl(142, 76%, 36%)", "hsl(217, 91%, 60%)", "hsl(0, 84%, 60%)"];
 
@@ -30,6 +38,24 @@ const PoolsPage = () => {
   const [selectedPoolChat, setSelectedPoolChat] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const [filter, setFilter] = useState<PoolFilter>("all");
+  const [watchlist, setWatchlist] = useState<string[]>(loadWatch());
+  const toggleWatch = (id: string) => {
+    setWatchlist((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      saveWatch(next);
+      return next;
+    });
+  };
+  const sharePool = async (pool: any) => {
+    const url = `${window.location.origin}/dashboard/pools#${pool.id}`;
+    const text = `Join the ${pool.name} trading pool on TradeLux`;
+    if (navigator.share) {
+      try { await navigator.share({ title: pool.name, text, url }); return; } catch {}
+    }
+    if (await copyText(url)) toast.success("Pool link copied");
+  };
 
   const { data: pools = [] } = useQuery({
     queryKey: ["pools"],
