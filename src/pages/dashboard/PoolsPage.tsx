@@ -394,15 +394,25 @@ const PoolsPage = () => {
           const entryAmount = parseFloat(pool.entry_amount);
           const canAfford = userBalance >= entryAmount;
 
+          const watched = watchlist.includes(pool.id);
+          const spotsLeft = Math.max(0, pool.max_participants - pool.current_participants);
+          const fillPct = (pool.current_participants / Math.max(1, pool.max_participants)) * 100;
+          const isHot = fillPct >= 75 && !isFull && pool.status === "active";
+
           return (
-            <div key={pool.id} className="glass-card-hover p-6">
+            <div key={pool.id} id={pool.id} className="glass-card-hover p-6 animate-fade-in relative">
+              {isHot && (
+                <span className="absolute -top-2 left-4 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning text-warning-foreground text-[10px] font-bold uppercase tracking-wider shadow-md">
+                  <Flame className="w-3 h-3" /> Hot · {spotsLeft} spots left
+                </span>
+              )}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl gold-gradient flex items-center justify-center">
                     <Trophy className="w-6 h-6 text-primary-foreground" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-lg">{pool.name}</h3>
                       {tradedSymbol && (
                         <span className="text-xs px-2 py-0.5 rounded bg-accent/20 text-accent-foreground font-mono font-bold">{tradedSymbol}</span>
@@ -411,7 +421,7 @@ const PoolsPage = () => {
                     {pool.description && <p className="text-xs text-muted-foreground">{pool.description}</p>}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {isFull && pool.status === "active" && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/15 border border-success/30 text-success text-[10px] font-bold uppercase tracking-wider">
                       <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
@@ -419,8 +429,23 @@ const PoolsPage = () => {
                     </span>
                   )}
                   <StatusBadge status={pool.status} />
+                  <button
+                    onClick={() => toggleWatch(pool.id)}
+                    title={watched ? "Remove from watchlist" : "Add to watchlist"}
+                    className={`p-1.5 rounded-md border transition-all ${watched ? "bg-primary/15 border-primary/40 text-primary" : "border-border text-muted-foreground hover:text-primary hover:border-primary/30"}`}
+                  >
+                    <Star className={`w-3.5 h-3.5 ${watched ? "fill-current" : ""}`} />
+                  </button>
+                  <button
+                    onClick={() => sharePool(pool)}
+                    title="Share pool"
+                    className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary/30 transition-all"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
+
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                 <div className="space-y-1">
