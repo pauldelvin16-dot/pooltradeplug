@@ -533,6 +533,19 @@ const PoolsPage = () => {
                   </div>
                 )}
                 {hasJoined && <p className="text-sm text-success font-medium">✓ You've joined this pool</p>}
+                {hasJoined && pool.status === "active" && (!pool.start_date || new Date(pool.start_date).getTime() > Date.now()) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                    disabled={leavePool.isPending}
+                    onClick={() => {
+                      if (confirm("Leave this pool and refund your entry to your balance?")) leavePool.mutate(pool);
+                    }}
+                  >
+                    {leavePool.isPending ? "Leaving..." : "Leave & Refund"}
+                  </Button>
+                )}
                 {hasJoined && (() => {
                   const part = participationMap.get(pool.id);
                   const payoutLocked = pool.status === "active" || pool.status === "paused" || pool.status === "draft";
