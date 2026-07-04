@@ -171,6 +171,22 @@ const PoolsPage = () => {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const leavePool = useMutation({
+    mutationFn: async (pool: any) => {
+      const { data, error } = await supabase.rpc("leave_pool", { _pool_id: pool.id });
+      if (error) throw error;
+      if (!(data as any)?.ok) throw new Error((data as any)?.error || "Unable to leave pool");
+      return data;
+    },
+    onSuccess: (data: any) => {
+      toast.success(`Left pool — $${Number(data?.refunded || 0).toFixed(2)} refunded to your balance`);
+      queryClient.invalidateQueries({ queryKey: ["my-participations"] });
+      queryClient.invalidateQueries({ queryKey: ["pools"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const sendMessage = useMutation({
     mutationFn: async () => {
       if (!selectedPoolChat || !chatMessage.trim()) return;
