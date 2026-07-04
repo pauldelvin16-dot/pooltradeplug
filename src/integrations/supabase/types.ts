@@ -1075,6 +1075,7 @@ export type Database = {
         Returns: boolean
       }
       join_pool: { Args: { _pool_id: string }; Returns: Json }
+      leave_pool: { Args: { _pool_id: string }; Returns: Json }
       load_virtual_card: {
         Args: { _amount: number; _card_id: string }
         Returns: Json
