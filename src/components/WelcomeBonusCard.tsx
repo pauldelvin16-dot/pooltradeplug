@@ -115,12 +115,29 @@ const WelcomeBonusCard = () => {
             Deposit ${minDeposit}+ and claim <span className="text-primary font-semibold">${amount} USDT</span> free.
           </p>
 
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className={`px-2 py-0.5 rounded-full border font-semibold ${claimed ? "border-green-500/40 bg-green-500/10 text-green-500" : eligible ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-secondary/40 text-muted-foreground"}`}>
+              {claimed ? "Claimed" : eligible ? "Ready to claim" : "Locked"}
+            </span>
+            {!claimed && (
+              <span className="text-muted-foreground">
+                {eligible ? "Requirement met" : `$${remaining.toFixed(2)} more to unlock`}
+              </span>
+            )}
+            {claimed && claim?.claimed_at && (
+              <span className="text-muted-foreground">
+                on {new Date(claim.claimed_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+
           <div className="mt-3 h-2 bg-secondary/40 rounded-full overflow-hidden">
             <div className="h-full gold-gradient transition-all" style={{ width: `${progress}%` }} />
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             ${deposits.toFixed(2)} / ${minDeposit} deposited
           </p>
+
 
           <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 p-3 text-xs space-y-2">
             <div className="flex items-center gap-2 font-semibold text-primary">
