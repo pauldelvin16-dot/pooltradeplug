@@ -56,25 +56,25 @@ const Signup = () => {
             <p className="text-sm text-muted-foreground mt-2">Join the elite trading community</p>
           </div>
 
-          <form onSubmit={handleSignup} className="space-y-4">
+          <form onSubmit={handleSignup} className="space-y-4" autoComplete="off">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>First Name</Label>
-                <Input placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="bg-secondary/50 border-border focus:border-primary" required />
+                <Input name="signup-first" placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="bg-secondary/50 border-border focus:border-primary" required autoComplete="off" />
               </div>
               <div className="space-y-2">
                 <Label>Last Name</Label>
-                <Input placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} className="bg-secondary/50 border-border focus:border-primary" required />
+                <Input name="signup-last" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} className="bg-secondary/50 border-border focus:border-primary" required autoComplete="off" />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input type="email" placeholder="trader@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-secondary/50 border-border focus:border-primary" required />
+              <Input name="signup-email" type="email" placeholder="trader@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-secondary/50 border-border focus:border-primary" required autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} />
             </div>
             <div className="space-y-2">
               <Label>Password</Label>
               <div className="relative">
-                <Input type={showPassword ? "text" : "password"} placeholder="Min 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-secondary/50 border-border focus:border-primary pr-10" required minLength={6} />
+                <Input name="signup-password" type={showPassword ? "text" : "password"} placeholder="Min 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-secondary/50 border-border focus:border-primary pr-10" required minLength={6} autoComplete="new-password" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
