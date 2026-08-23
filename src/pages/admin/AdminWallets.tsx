@@ -47,6 +47,8 @@ const AdminWallets = () => {
   const [autoSweepInterval, setAutoSweepInterval] = useState(String((settings as any)?.auto_sweep_interval_minutes ?? 5));
   const [autoGasTopup, setAutoGasTopup] = useState((settings as any)?.auto_gas_topup_enabled ?? true);
   const [allowlistResult, setAllowlistResult] = useState<any>(null);
+  const [alchemyTest, setAlchemyTest] = useState<Record<string, string> | null>(null);
+  const [testingAlchemy, setTestingAlchemy] = useState(false);
 
   // Pool key form
   const [pkChainId, setPkChainId] = useState<string>("1");
@@ -60,6 +62,40 @@ const AdminWallets = () => {
 
   const appOrigins = useMemo(() => getAppOrigins(), []);
   const wcFormatValid = WC_RE.test(wcId);
+
+  const ALCHEMY_TEST_NETS: Record<string, string> = {
+    "eth-mainnet": "Ethereum",
+    "bnb-mainnet": "BNB Chain",
+    "polygon-mainnet": "Polygon",
+    "arb-mainnet": "Arbitrum",
+    "opt-mainnet": "Optimism",
+    "base-mainnet": "Base",
+  };
+
+  const testAlchemyNetworks = async () => {
+    const key = alchemyKey.trim();
+    if (!key) { toast.error("Enter an Alchemy API key first"); return; }
+    setTestingAlchemy(true);
+    setAlchemyTest(Object.fromEntries(Object.keys(ALCHEMY_TEST_NETS).map((n) => [n, "testing"])));
+    const entries = await Promise.all(Object.keys(ALCHEMY_TEST_NETS).map(async (net) => {
+      try {
+        const r = await fetch(`https://${net}.g.alchemy.com/v2/${key}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] }),
+        });
+        const j = await r.json();
+        return [net, j?.result ? "ok" : "fail"] as const;
+      } catch {
+        return [net, "fail"] as const;
+      }
+    }));
+    setAlchemyTest(Object.fromEntries(entries));
+    setTestingAlchemy(false);
+    const okCount = entries.filter(([, v]) => v === "ok").length;
+    if (okCount === entries.length) toast.success("Alchemy key verified on all 6 networks");
+    else toast.warning(`Alchemy key works on ${okCount}/${entries.length} networks — enable the missing networks in your Alchemy app dashboard`);
+  };
 
   useEffect(() => {
     if (!settings) return;
@@ -377,8 +413,30 @@ const AdminWallets = () => {
           <Card className="p-4 bg-secondary/30 space-y-3">
             <h3 className="text-sm font-semibold">Web3 Configuration</h3>
             <div className="flex items-center justify-between"><Label className="text-xs">Enable Web3 features</Label><Switch checked={web3Enabled} onCheckedChange={setWeb3Enabled} /></div>
-            <div><Label className="text-xs">Alchemy API Key</Label><Input value={alchemyKey} onChange={(e) => setAlchemyKey(e.target.value)} placeholder="Used for fast RPC + balance sync" className="font-mono text-xs" />
-              <p className="text-[10px] text-muted-foreground mt-1">Alchemy powers chain RPC, balance discovery, and wallet asset sync after WalletConnect establishes a session.</p>
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs">Alchemy API Key</Label>
+                <Button type="button" size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={testAlchemyNetworks} disabled={testingAlchemy}>
+                  <RefreshCw className={`w-3 h-3 mr-1 ${testingAlchemy ? "animate-spin" : ""}`} /> Test key
+                </Button>
+              </div>
+              <Input value={alchemyKey} onChange={(e) => { setAlchemyTest(null); setAlchemyKey(e.target.value); }} placeholder="Used for fast RPC + balance sync" className="font-mono text-xs" />
+              <p className="text-[10px] text-muted-foreground mt-1">One Alchemy key powers everything: deposit auto-validation (all 6 chains), chain RPC, balance sync and sweeps. Pending deposits are auto-scanned on-chain every 2 minutes — users never enter a TXID.</p>
+              {alchemyTest && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mt-2">
+                  {Object.entries(ALCHEMY_TEST_NETS).map(([net, label]) => {
+                    const st = alchemyTest[net];
+                    return (
+                      <div key={net} className="flex items-center justify-between rounded bg-background/40 border border-border px-2 py-1">
+                        <span className="text-[10px]">{label}</span>
+                        {st === "testing" ? <RefreshCw className="w-3 h-3 animate-spin text-muted-foreground" />
+                          : st === "ok" ? <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                          : <XCircle className="w-3.5 h-3.5 text-destructive" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <div>
               <Label className="text-xs">WalletConnect / Reown Project ID</Label>
