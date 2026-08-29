@@ -29,6 +29,31 @@ const escape = (v: any) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!)
   );
 
+// --- Deliverability helpers -------------------------------------------------
+// Spam filters (SpamAssassin, Google, Outlook) penalise emoji/currency-heavy subjects,
+// HTML-only bodies, and missing unsubscribe/identity headers. These helpers fix all three.
+
+const stripEmoji = (s: string) =>
+  s.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu, '').replace(/\s{2,}/g, ' ').trim();
+
+// Build a genuine text/plain alternative from the HTML body (not the whole document).
+// A real multipart/alternative message scores far better than HTML-only.
+const htmlToText = (html: string) => {
+  const inner = html.replace(/[\s\S]*?<body[^>]*>/i, '').replace(/<\/body>[\s\S]*/i, '') || html;
+  return inner
+    .replace(/<(script|style|head|title)[\s\S]*?<\/\1>/gi, '')
+    .replace(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href, label) =>
+      `${String(label).replace(/<[^>]+>/g, '').trim()} ( ${href} )`)
+    .replace(/<\/(p|div|tr|h1|h2|h3|li|table)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '- ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .split('\n').map((l) => l.replace(/[ \t]+/g, ' ').trim()).filter(Boolean).join('\n')
+    .slice(0, 8000);
+};
+
 const baseTemplate = (siteUrl: string, brandName: string, title: string, body: string, ctaText?: string, ctaUrl?: string) => `
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>${escape(title)}</title></head>
