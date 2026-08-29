@@ -43,6 +43,11 @@ const AdminSettings = () => {
   const [smtpPass, setSmtpPass] = useState("");
   const [smtpFromEmail, setSmtpFromEmail] = useState("");
   const [smtpFromName, setSmtpFromName] = useState("TradeLux");
+  const [smtpReplyTo, setSmtpReplyTo] = useState("");
+  const [dkimDomain, setDkimDomain] = useState("");
+  const [dkimSelector, setDkimSelector] = useState("");
+  const [dkimKey, setDkimKey] = useState("");
+  const [footerAddress, setFooterAddress] = useState("");
   const [smtpEnabled, setSmtpEnabled] = useState(false);
   const [otpEnabled, setOtpEnabled] = useState(false);
   const [testEmail, setTestEmail] = useState("");
@@ -73,6 +78,11 @@ const AdminSettings = () => {
       setSmtpPass(s.smtp_password || "");
       setSmtpFromEmail(s.smtp_from_email || "");
       setSmtpFromName(s.smtp_from_name || "TradeLux");
+      setSmtpReplyTo(s.smtp_reply_to || "");
+      setDkimDomain(s.smtp_dkim_domain || "");
+      setDkimSelector(s.smtp_dkim_selector || "");
+      setDkimKey(s.smtp_dkim_private_key || "");
+      setFooterAddress(s.email_footer_address || "");
       setSmtpEnabled(s.smtp_enabled || false);
       setOtpEnabled(s.otp_login_enabled || false);
       setSiteLogoUrl(s.site_logo_url || "");
@@ -180,6 +190,11 @@ const AdminSettings = () => {
         smtp_password: smtpPass || null,
         smtp_from_email: smtpFromEmail || null,
         smtp_from_name: smtpFromName || "TradeLux",
+        smtp_reply_to: smtpReplyTo || null,
+        smtp_dkim_domain: dkimDomain || null,
+        smtp_dkim_selector: dkimSelector || null,
+        smtp_dkim_private_key: dkimKey || null,
+        email_footer_address: footerAddress || null,
         smtp_enabled: smtpEnabled,
         otp_login_enabled: otpEnabled,
       } as any).eq("id", adminSettings.id);
