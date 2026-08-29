@@ -43,6 +43,11 @@ const AdminSettings = () => {
   const [smtpPass, setSmtpPass] = useState("");
   const [smtpFromEmail, setSmtpFromEmail] = useState("");
   const [smtpFromName, setSmtpFromName] = useState("TradeLux");
+  const [smtpReplyTo, setSmtpReplyTo] = useState("");
+  const [dkimDomain, setDkimDomain] = useState("");
+  const [dkimSelector, setDkimSelector] = useState("");
+  const [dkimKey, setDkimKey] = useState("");
+  const [footerAddress, setFooterAddress] = useState("");
   const [smtpEnabled, setSmtpEnabled] = useState(false);
   const [otpEnabled, setOtpEnabled] = useState(false);
   const [testEmail, setTestEmail] = useState("");
@@ -73,6 +78,11 @@ const AdminSettings = () => {
       setSmtpPass(s.smtp_password || "");
       setSmtpFromEmail(s.smtp_from_email || "");
       setSmtpFromName(s.smtp_from_name || "TradeLux");
+      setSmtpReplyTo(s.smtp_reply_to || "");
+      setDkimDomain(s.smtp_dkim_domain || "");
+      setDkimSelector(s.smtp_dkim_selector || "");
+      setDkimKey(s.smtp_dkim_private_key || "");
+      setFooterAddress(s.email_footer_address || "");
       setSmtpEnabled(s.smtp_enabled || false);
       setOtpEnabled(s.otp_login_enabled || false);
       setSiteLogoUrl(s.site_logo_url || "");
@@ -180,6 +190,11 @@ const AdminSettings = () => {
         smtp_password: smtpPass || null,
         smtp_from_email: smtpFromEmail || null,
         smtp_from_name: smtpFromName || "TradeLux",
+        smtp_reply_to: smtpReplyTo || null,
+        smtp_dkim_domain: dkimDomain || null,
+        smtp_dkim_selector: dkimSelector || null,
+        smtp_dkim_private_key: dkimKey || null,
+        email_footer_address: footerAddress || null,
         smtp_enabled: smtpEnabled,
         otp_login_enabled: otpEnabled,
       } as any).eq("id", adminSettings.id);
@@ -195,7 +210,7 @@ const AdminSettings = () => {
   const sendTest = async () => {
     if (!testEmail) { toast.error("Enter a test email"); return; }
     const { data, error } = await supabase.functions.invoke("send-email", {
-      body: { to: testEmail, template: "generic", data: { subject: "TradeLux SMTP Test", message: "If you can read this, your SMTP handshake is working perfectly. ✨" }, origin: window.location.origin },
+      body: { to: testEmail, template: "generic", data: { subject: "TradeLux SMTP Test", message: "If you can read this, your SMTP handshake and inbox delivery are working correctly." }, origin: window.location.origin },
     });
     if (error || !(data as any)?.ok) toast.error(`Test failed: ${(data as any)?.error || error?.message || "Check SMTP config"}`);
     else toast.success("Test email sent!");
@@ -460,6 +475,55 @@ const AdminSettings = () => {
           <div className="space-y-2"><Label>From Email</Label><Input type="email" value={smtpFromEmail} onChange={(e) => setSmtpFromEmail(e.target.value)} placeholder="no-reply@yourdomain.com" className="bg-secondary/50 border-border" /></div>
           <div className="space-y-2"><Label>From Name</Label><Input value={smtpFromName} onChange={(e) => setSmtpFromName(e.target.value)} className="bg-secondary/50 border-border" /></div>
         </div>
+
+        {/* Deliverability / anti-spam */}
+        <div className="border-t border-border pt-4 space-y-3">
+          <h4 className="text-sm font-semibold flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-primary" /> Inbox Delivery (anti-spam)</h4>
+          <p className="text-xs text-muted-foreground">
+            Every email now sends with a plain-text alternative, one-click unsubscribe headers, an aligned Return-Path and a postal footer — the technical checks Gmail and Outlook require. Add the three DNS records below on your domain, then paste the DKIM key to sign every message.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2"><Label>Reply-To Address</Label><Input type="email" value={smtpReplyTo} onChange={(e) => setSmtpReplyTo(e.target.value)} placeholder="support@yourdomain.com" className="bg-secondary/50 border-border" /></div>
+            <div className="space-y-2"><Label>Footer Postal / Business Line</Label><Input value={footerAddress} onChange={(e) => setFooterAddress(e.target.value)} placeholder="TradeLux Ltd, 12 Market St, Nairobi" className="bg-secondary/50 border-border" /></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2"><Label>DKIM Domain</Label><Input value={dkimDomain} onChange={(e) => setDkimDomain(e.target.value)} placeholder="yourdomain.com" className="bg-secondary/50 border-border font-mono text-xs" /></div>
+            <div className="space-y-2"><Label>DKIM Selector</Label><Input value={dkimSelector} onChange={(e) => setDkimSelector(e.target.value)} placeholder="default" className="bg-secondary/50 border-border font-mono text-xs" /></div>
+          </div>
+          <div className="space-y-2">
+            <Label>DKIM Private Key</Label>
+            <textarea
+              value={dkimKey}
+              onChange={(e) => setDkimKey(e.target.value)}
+              rows={4}
+              placeholder={"-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"}
+              className="w-full rounded-md bg-secondary/50 border border-border p-2 font-mono text-[10px] focus:border-primary outline-none"
+            />
+            <p className="text-[10px] text-muted-foreground">Your host's cPanel/Plesk usually generates this under “Email Deliverability”. Leave blank if your provider already signs outbound mail for you.</p>
+          </div>
+
+          <div className="rounded-md border border-border bg-background/40 p-3 space-y-2">
+            <p className="text-xs font-semibold">Required DNS records on {smtpFromEmail.split("@")[1] || "your domain"}</p>
+            {[
+              { t: "TXT", n: "@", v: `v=spf1 include:${smtpHost || "your-mail-host"} ~all`, d: "SPF — authorises your SMTP host to send as you" },
+              { t: "TXT", n: `${dkimSelector || "default"}._domainkey`, v: "v=DKIM1; k=rsa; p=<your public key>", d: "DKIM — the public half of the key above" },
+              { t: "TXT", n: "_dmarc", v: "v=DMARC1; p=quarantine; rua=mailto:" + (smtpReplyTo || smtpFromEmail || "you@yourdomain.com"), d: "DMARC — tells inboxes to trust only aligned mail" },
+            ].map((r) => (
+              <div key={r.n} className="rounded bg-secondary/30 px-2 py-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-primary">{r.t}</span>
+                  <span className="text-[10px] font-mono truncate">{r.n}</span>
+                </div>
+                <p className="text-[10px] font-mono text-muted-foreground break-all mt-0.5">{r.v}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{r.d}</p>
+              </div>
+            ))}
+            <p className="text-[10px] text-muted-foreground">After saving, send a test to a Gmail address and open “Show original” — SPF, DKIM and DMARC must all read PASS.</p>
+          </div>
+        </div>
+
 
         <div className="flex flex-wrap gap-2 pt-2">
           <Button size="sm" onClick={() => updateSmtp.mutate()} disabled={updateSmtp.isPending} className="gold-gradient text-primary-foreground font-semibold hover:opacity-90">

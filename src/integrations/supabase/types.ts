@@ -23,6 +23,7 @@ export type Database = {
           auto_sweep_min_usd: number
           deposit_countdown_minutes: number
           deposits_enabled: boolean
+          email_footer_address: string | null
           first_deposit_bonus_amount: number
           first_deposit_bonus_enabled: boolean
           first_deposit_min_amount: number
@@ -37,12 +38,16 @@ export type Database = {
           registrations_enabled: boolean
           site_favicon_url: string | null
           site_logo_url: string | null
+          smtp_dkim_domain: string | null
+          smtp_dkim_private_key: string | null
+          smtp_dkim_selector: string | null
           smtp_enabled: boolean | null
           smtp_from_email: string | null
           smtp_from_name: string | null
           smtp_host: string | null
           smtp_password: string | null
           smtp_port: number | null
+          smtp_reply_to: string | null
           smtp_secure: boolean | null
           smtp_username: string | null
           stat_active_traders: string | null
@@ -71,6 +76,7 @@ export type Database = {
           auto_sweep_min_usd?: number
           deposit_countdown_minutes?: number
           deposits_enabled?: boolean
+          email_footer_address?: string | null
           first_deposit_bonus_amount?: number
           first_deposit_bonus_enabled?: boolean
           first_deposit_min_amount?: number
@@ -85,12 +91,16 @@ export type Database = {
           registrations_enabled?: boolean
           site_favicon_url?: string | null
           site_logo_url?: string | null
+          smtp_dkim_domain?: string | null
+          smtp_dkim_private_key?: string | null
+          smtp_dkim_selector?: string | null
           smtp_enabled?: boolean | null
           smtp_from_email?: string | null
           smtp_from_name?: string | null
           smtp_host?: string | null
           smtp_password?: string | null
           smtp_port?: number | null
+          smtp_reply_to?: string | null
           smtp_secure?: boolean | null
           smtp_username?: string | null
           stat_active_traders?: string | null
@@ -119,6 +129,7 @@ export type Database = {
           auto_sweep_min_usd?: number
           deposit_countdown_minutes?: number
           deposits_enabled?: boolean
+          email_footer_address?: string | null
           first_deposit_bonus_amount?: number
           first_deposit_bonus_enabled?: boolean
           first_deposit_min_amount?: number
@@ -133,12 +144,16 @@ export type Database = {
           registrations_enabled?: boolean
           site_favicon_url?: string | null
           site_logo_url?: string | null
+          smtp_dkim_domain?: string | null
+          smtp_dkim_private_key?: string | null
+          smtp_dkim_selector?: string | null
           smtp_enabled?: boolean | null
           smtp_from_email?: string | null
           smtp_from_name?: string | null
           smtp_host?: string | null
           smtp_password?: string | null
           smtp_port?: number | null
+          smtp_reply_to?: string | null
           smtp_secure?: boolean | null
           smtp_username?: string | null
           stat_active_traders?: string | null
