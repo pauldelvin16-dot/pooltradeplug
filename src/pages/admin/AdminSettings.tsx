@@ -210,7 +210,7 @@ const AdminSettings = () => {
   const sendTest = async () => {
     if (!testEmail) { toast.error("Enter a test email"); return; }
     const { data, error } = await supabase.functions.invoke("send-email", {
-      body: { to: testEmail, template: "generic", data: { subject: "TradeLux SMTP Test", message: "If you can read this, your SMTP handshake is working perfectly. ✨" }, origin: window.location.origin },
+      body: { to: testEmail, template: "generic", data: { subject: "TradeLux SMTP Test", message: "If you can read this, your SMTP handshake and inbox delivery are working correctly." }, origin: window.location.origin },
     });
     if (error || !(data as any)?.ok) toast.error(`Test failed: ${(data as any)?.error || error?.message || "Check SMTP config"}`);
     else toast.success("Test email sent!");
