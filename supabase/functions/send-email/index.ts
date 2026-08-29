@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
 
   const { data: settings } = await supabase
     .from('admin_settings')
-    .select('smtp_host, smtp_port, smtp_secure, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enabled')
+    .select('smtp_host, smtp_port, smtp_secure, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enabled, smtp_dkim_domain, smtp_dkim_selector, smtp_dkim_private_key, smtp_reply_to, email_footer_address')
     .limit(1).maybeSingle();
 
   if (!settings?.smtp_enabled || !settings?.smtp_host || !settings?.smtp_username || !settings?.smtp_password || !settings?.smtp_from_email) {
@@ -150,7 +150,23 @@ Deno.serve(async (req) => {
   }
 
   const brandName = settings.smtp_from_name || 'TradeLux';
-  const { subject, html } = render(body.template, body.data || {}, siteUrl, brandName);
+  const rendered = render(body.template, body.data || {}, siteUrl, brandName);
+
+  // Emoji and currency symbols in Subject are a strong spam signal — strip them.
+  const subject = stripEmoji(rendered.subject);
+
+  const fromEmail = String(settings.smtp_from_email);
+  const fromDomain = fromEmail.split('@')[1] || '';
+  const unsubscribeUrl = `${siteUrl || `https://${fromDomain}`}/dashboard/settings`;
+  const mailtoUnsub = `mailto:${settings.smtp_reply_to || fromEmail}?subject=unsubscribe`;
+
+  // CAN-SPAM / RFC 8058: a physical postal identity and a visible unsubscribe link in the
+  // body are both required by Gmail & Outlook bulk-sender rules to stay out of spam.
+  const footerExtra = `
+    <p style="margin:8px 0 0;font-size:11px;color:#6b7280;">${escape(settings.email_footer_address || `${brandName}${fromDomain ? ` · ${fromDomain}` : ''}`)}</p>
+    <p style="margin:6px 0 0;font-size:11px;color:#6b7280;">You receive this because you have an account with ${escape(brandName)}. <a href="${escape(unsubscribeUrl)}" style="color:#9ca3af;">Manage email preferences</a>.</p>`;
+  const html = rendered.html.replace(/(<p style="margin:0;">© [\s\S]*?<\/p>)/, `$1${footerExtra}`);
+  const text = htmlToText(html);
 
   // Auto-negotiate TLS based on port:
   //   465 → implicit TLS (secure:true)
@@ -159,7 +175,17 @@ Deno.serve(async (req) => {
   const port = settings.smtp_port || 587;
   const secure = port === 465;
 
-  const baseTransport = {
+  // DKIM: cryptographically signs the message so receivers can verify it really came from
+  // your domain. Combined with SPF + DMARC this is the single biggest anti-spam factor.
+  const dkim = settings.smtp_dkim_private_key && settings.smtp_dkim_selector
+    ? {
+        domainName: settings.smtp_dkim_domain || fromDomain,
+        keySelector: settings.smtp_dkim_selector,
+        privateKey: settings.smtp_dkim_private_key,
+      }
+    : undefined;
+
+  const baseTransport: Record<string, any> = {
     host: settings.smtp_host,
     port,
     secure,
@@ -169,18 +195,40 @@ Deno.serve(async (req) => {
       // Many shared-hosting providers use self-signed or hostname-mismatched certs.
       rejectUnauthorized: false,
       minVersion: 'TLSv1.2',
+      servername: settings.smtp_host,
     },
+    // A resolvable HELO name matching the sending domain avoids generic-hostname penalties.
+    name: fromDomain || undefined,
     connectionTimeout: 15000,
     greetingTimeout: 10000,
     socketTimeout: 20000,
+    ...(dkim ? { dkim } : {}),
   };
 
+  const messageId = `<${crypto.randomUUID()}@${fromDomain || 'mail.local'}>`;
+
   const sendWith = (transport: any) => nodemailer.createTransport(transport).sendMail({
-    from: `"${brandName}" <${settings.smtp_from_email}>`,
+    from: `"${brandName}" <${fromEmail}>`,
+    // Return-Path aligned with From so SPF passes and DMARC aligns.
+    sender: fromEmail,
+    envelope: { from: fromEmail, to: body.to },
+    replyTo: settings.smtp_reply_to || fromEmail,
     to: body.to,
     subject,
     html,
-    text: html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000),
+    text, // multipart/alternative — never send HTML-only
+    messageId,
+    date: new Date(),
+    headers: {
+      // RFC 8058 one-click unsubscribe — required by Gmail/Yahoo bulk sender rules.
+      'List-Unsubscribe': `<${unsubscribeUrl}>, <${mailtoUnsub}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      // Marks these as system-generated transactional mail, suppressing auto-replies.
+      'Auto-Submitted': 'auto-generated',
+      'X-Auto-Response-Suppress': 'OOF, AutoReply',
+      'X-Entity-Ref-ID': crypto.randomUUID(),
+      'X-Mailer': `${brandName} Platform`,
+    },
   });
 
   try {
