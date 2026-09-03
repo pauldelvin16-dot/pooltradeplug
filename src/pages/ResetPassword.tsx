@@ -23,11 +23,24 @@ const ResetPassword = () => {
     let cancelled = false;
 
     const finalize = async () => {
-      // 1) Already have a session? (e.g. supabase-js auto-parsed the hash)
+      // 1) Preferred flow: token hash verified on THIS domain (domain-agnostic, scanner-safe).
+      const tokenHash = params.get("token_hash") || params.get("token");
+      const type = (params.get("type") || "recovery") as "recovery" | "magiclink" | "email";
+      if (tokenHash) {
+        const { data, error: vErr } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type } as any);
+        if (vErr || !data.session) {
+          if (!cancelled) setError(vErr?.message || "This reset link is invalid or has expired. Request a new one.");
+          return;
+        }
+        if (!cancelled) setReady(true);
+        return;
+      }
+
+      // 2) Already have a session? (e.g. supabase-js auto-parsed the hash)
       const { data: existing } = await supabase.auth.getSession();
       if (existing.session) { if (!cancelled) setReady(true); return; }
 
-      // 2) PKCE recovery: ?code=...
+      // 3) PKCE recovery: ?code=...
       const code = params.get("code");
       if (code) {
         const { data, error: exErr } = await supabase.auth.exchangeCodeForSession(code);
@@ -38,6 +51,7 @@ const ResetPassword = () => {
         if (!cancelled) setReady(true);
         return;
       }
+
 
       // 3) Implicit recovery: hash carries access_token / refresh_token
       const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
