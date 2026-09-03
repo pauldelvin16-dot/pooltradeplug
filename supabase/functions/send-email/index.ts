@@ -139,6 +139,17 @@ Deno.serve(async (req) => {
   const origin = body.origin || req.headers.get('origin') || req.headers.get('referer')?.replace(/\/$/, '') || '';
   const siteUrl = origin.replace(/\/$/, '');
 
+  // Security emails must always be delivered, even to unsubscribed addresses.
+  const CRITICAL: TemplateName[] = ['password_reset', 'otp_login'];
+  const recipient = String(body.to).toLowerCase().trim();
+  if (!CRITICAL.includes(body.template)) {
+    const { data: optout } = await supabase.from('email_optouts').select('email').eq('email', recipient).maybeSingle();
+    if (optout) {
+      await supabase.from('email_log').insert({ to_email: body.to, subject: body.subject || body.template, template: body.template, status: 'skipped', error: 'Recipient unsubscribed' });
+      return new Response(JSON.stringify({ ok: false, reason: 'unsubscribed' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+  }
+
   const { data: settings } = await supabase
     .from('admin_settings')
     .select('smtp_host, smtp_port, smtp_secure, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_enabled, smtp_dkim_domain, smtp_dkim_selector, smtp_dkim_private_key, smtp_reply_to, email_footer_address')
@@ -157,16 +168,28 @@ Deno.serve(async (req) => {
 
   const fromEmail = String(settings.smtp_from_email);
   const fromDomain = fromEmail.split('@')[1] || '';
-  const unsubscribeUrl = `${siteUrl || `https://${fromDomain}`}/dashboard/settings`;
+
+  // Signed one-click unsubscribe token, resolved against whatever domain sent the request.
+  const b64url = (s: string) => btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const hmac32 = async (value: string) => {
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(serviceKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(value));
+    return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+  };
+  const unsubPayload = b64url(recipient);
+  const unsubToken = `${unsubPayload}.${await hmac32(unsubPayload)}`;
+  const publicBase = siteUrl || (fromDomain ? `https://${fromDomain}` : '');
+  const unsubscribeUrl = `${publicBase}/unsubscribe?token=${unsubToken}`;
   const mailtoUnsub = `mailto:${settings.smtp_reply_to || fromEmail}?subject=unsubscribe`;
 
   // CAN-SPAM / RFC 8058: a physical postal identity and a visible unsubscribe link in the
   // body are both required by Gmail & Outlook bulk-sender rules to stay out of spam.
   const footerExtra = `
     <p style="margin:8px 0 0;font-size:11px;color:#6b7280;">${escape(settings.email_footer_address || `${brandName}${fromDomain ? ` · ${fromDomain}` : ''}`)}</p>
-    <p style="margin:6px 0 0;font-size:11px;color:#6b7280;">You receive this because you have an account with ${escape(brandName)}. <a href="${escape(unsubscribeUrl)}" style="color:#9ca3af;">Manage email preferences</a>.</p>`;
+    <p style="margin:6px 0 0;font-size:11px;color:#6b7280;">You receive this because you have an account with ${escape(brandName)}. <a href="${escape(unsubscribeUrl)}" style="color:#9ca3af;">Unsubscribe</a> · <a href="${escape(`${publicBase}/dashboard/settings`)}" style="color:#9ca3af;">Email preferences</a>.</p>`;
   const html = rendered.html.replace(/(<p style="margin:0;">© [\s\S]*?<\/p>)/, `$1${footerExtra}`);
   const text = htmlToText(html);
+
 
   // Auto-negotiate TLS based on port:
   //   465 → implicit TLS (secure:true)

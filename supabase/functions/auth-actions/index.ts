@@ -53,11 +53,18 @@ Deno.serve(async (req) => {
         email,
         options: { redirectTo },
       });
-      const reset_url = (linkData as any)?.properties?.action_link || redirectTo;
+      // Prefer the raw token hash over Supabase's /auth/v1/verify action link:
+      // the hash is verified directly on OUR page, on whatever domain the request came from,
+      // so the link never breaks when the domain changes and is not consumed by mail scanners.
+      const tokenHash = (linkData as any)?.properties?.hashed_token;
+      const reset_url = tokenHash
+        ? `${redirectTo}?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`
+        : (linkData as any)?.properties?.action_link || redirectTo;
       await callEmail('password_reset', email, { name: profile.first_name, reset_url });
     }
     return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
+
 
   if (body.action === 'request_otp') {
     const email = String(body.email || '').toLowerCase().trim();
@@ -102,7 +109,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: false, error: linkErr?.message || 'Could not issue session' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     const action_link = (linkData as any)?.properties?.action_link;
-    return new Response(JSON.stringify({ ok: true, action_link }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const token_hash = (linkData as any)?.properties?.hashed_token;
+    return new Response(JSON.stringify({ ok: true, token_hash, action_link }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   if (body.action === 'send_welcome') {

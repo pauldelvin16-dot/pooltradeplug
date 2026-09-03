@@ -69,14 +69,18 @@ const Login = () => {
       toast.error((data as any)?.error || error?.message || "Invalid or expired code");
       return;
     }
-    // Extract token_hash from the magiclink and verify on the client to create a real session.
-    const link: string = (data as any).action_link || "";
+    // Verify the hashed token on the client so a real Supabase session is created,
+    // regardless of which domain the app is served from.
     try {
-      const u = new URL(link);
-      const token_hash = u.searchParams.get("token") || u.searchParams.get("token_hash");
-      if (!token_hash) throw new Error("No token in action link");
+      let token_hash: string | null = (data as any).token_hash || null;
+      if (!token_hash) {
+        const u = new URL((data as any).action_link || "");
+        token_hash = u.searchParams.get("token") || u.searchParams.get("token_hash");
+      }
+      if (!token_hash) throw new Error("No login token returned");
       const { error: vErr } = await supabase.auth.verifyOtp({ type: "magiclink", token_hash, email } as any);
       if (vErr) throw vErr;
+
       toast.success("Welcome back!");
       navigate("/dashboard");
     } catch (e: any) {

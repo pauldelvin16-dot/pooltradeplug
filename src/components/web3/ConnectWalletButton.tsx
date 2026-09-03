@@ -200,6 +200,8 @@ const ConnectWalletButton = ({ requireAuth = true }: { requireAuth?: boolean }) 
       .then(({ error }) => error ? toast.error(error.message) : toast.success("Synced"));
   };
 
+  // Admin kill-switch: hides the whole connect feature when disabled in admin settings.
+  if ((settings as any)?.wallet_connect_enabled === false) return null;
   if (requireAuth && !user) return null;
   if (authLoading || !hydrated) return <Skeleton className="h-9 w-32 rounded-md" />;
 
