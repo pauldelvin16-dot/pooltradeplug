@@ -109,7 +109,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: false, error: linkErr?.message || 'Could not issue session' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     const action_link = (linkData as any)?.properties?.action_link;
-    return new Response(JSON.stringify({ ok: true, action_link }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const token_hash = (linkData as any)?.properties?.hashed_token;
+    return new Response(JSON.stringify({ ok: true, token_hash, action_link }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   if (body.action === 'send_welcome') {
