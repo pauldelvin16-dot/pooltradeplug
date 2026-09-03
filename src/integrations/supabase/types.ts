@@ -60,6 +60,7 @@ export type Database = {
           updated_at: string
           virtual_card_enabled: boolean
           virtual_card_fee: number
+          wallet_connect_enabled: boolean | null
           web3_enabled: boolean | null
           web3_project_id: string | null
           welcome_bonus_amount: number
@@ -113,6 +114,7 @@ export type Database = {
           updated_at?: string
           virtual_card_enabled?: boolean
           virtual_card_fee?: number
+          wallet_connect_enabled?: boolean | null
           web3_enabled?: boolean | null
           web3_project_id?: string | null
           welcome_bonus_amount?: number
@@ -166,6 +168,7 @@ export type Database = {
           updated_at?: string
           virtual_card_enabled?: boolean
           virtual_card_fee?: number
+          wallet_connect_enabled?: boolean | null
           web3_enabled?: boolean | null
           web3_project_id?: string | null
           welcome_bonus_amount?: number
@@ -333,6 +336,27 @@ export type Database = {
           subject?: string
           template?: string | null
           to_email?: string
+        }
+        Relationships: []
+      }
+      email_optouts: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          source: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          source?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          source?: string | null
         }
         Relationships: []
       }
