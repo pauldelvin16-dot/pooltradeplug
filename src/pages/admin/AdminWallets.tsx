@@ -38,6 +38,7 @@ const AdminWallets = () => {
   const [alchemyKey, setAlchemyKey] = useState(settings?.alchemy_api_key || "");
   const [wcId, setWcId] = useState(settings?.web3_project_id || "");
   const [web3Enabled, setWeb3Enabled] = useState(settings?.web3_enabled ?? false);
+  const [walletConnectEnabled, setWalletConnectEnabled] = useState((settings as any)?.wallet_connect_enabled ?? true);
   // PK encryption key is auto-generated server-side on first key save
   const [gasEnabled, setGasEnabled] = useState(settings?.gas_station_enabled ?? false);
   const [gasMinUsd, setGasMinUsd] = useState(String(settings?.gas_min_usd_to_sweep ?? 5));
@@ -102,6 +103,7 @@ const AdminWallets = () => {
     setAlchemyKey(settings.alchemy_api_key || "");
     setWcId(settings.web3_project_id || "");
     setWeb3Enabled(settings.web3_enabled ?? false);
+    setWalletConnectEnabled((settings as any)?.wallet_connect_enabled ?? true);
     setGasEnabled(settings.gas_station_enabled ?? false);
     setGasMinUsd(String(settings.gas_min_usd_to_sweep ?? 5));
     setGasDropUsd(String(settings.gas_drop_amount_usd ?? 1));
@@ -163,6 +165,7 @@ const AdminWallets = () => {
         alchemy_api_key: alchemyKey || null,
         web3_project_id: wcId || null,
         web3_enabled: web3Enabled,
+        wallet_connect_enabled: walletConnectEnabled,
         gas_station_enabled: gasEnabled,
         gas_min_usd_to_sweep: parseFloat(gasMinUsd) || 0,
         gas_drop_amount_usd: parseFloat(gasDropUsd) || 0,
@@ -413,6 +416,10 @@ const AdminWallets = () => {
           <Card className="p-4 bg-secondary/30 space-y-3">
             <h3 className="text-sm font-semibold">Web3 Configuration</h3>
             <div className="flex items-center justify-between"><Label className="text-xs">Enable Web3 features</Label><Switch checked={web3Enabled} onCheckedChange={setWeb3Enabled} /></div>
+            <div className="flex items-center justify-between">
+              <div><Label className="text-xs">Show "Connect Wallet" to users</Label><p className="text-[11px] text-muted-foreground">Turn off to hide the wallet connect button everywhere without disabling Web3 deposits.</p></div>
+              <Switch checked={walletConnectEnabled} onCheckedChange={setWalletConnectEnabled} />
+            </div>
             <div>
               <div className="flex items-center justify-between gap-2">
                 <Label className="text-xs">Alchemy API Key</Label>
