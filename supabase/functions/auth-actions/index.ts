@@ -53,11 +53,18 @@ Deno.serve(async (req) => {
         email,
         options: { redirectTo },
       });
-      const reset_url = (linkData as any)?.properties?.action_link || redirectTo;
+      // Prefer the raw token hash over Supabase's /auth/v1/verify action link:
+      // the hash is verified directly on OUR page, on whatever domain the request came from,
+      // so the link never breaks when the domain changes and is not consumed by mail scanners.
+      const tokenHash = (linkData as any)?.properties?.hashed_token;
+      const reset_url = tokenHash
+        ? `${redirectTo}?token_hash=${encodeURIComponent(tokenHash)}&type=recovery`
+        : (linkData as any)?.properties?.action_link || redirectTo;
       await callEmail('password_reset', email, { name: profile.first_name, reset_url });
     }
     return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
+
 
   if (body.action === 'request_otp') {
     const email = String(body.email || '').toLowerCase().trim();
