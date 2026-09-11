@@ -220,6 +220,178 @@ export type Database = {
           },
         ]
       }
+      copy_subscriptions: {
+        Row: {
+          allocation: number
+          copy_ratio: number
+          created_at: string
+          id: string
+          pnl: number
+          started_at: string
+          status: string
+          stop_loss_pct: number | null
+          stopped_at: string | null
+          take_profit_pct: number | null
+          trader_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allocation: number
+          copy_ratio?: number
+          created_at?: string
+          id?: string
+          pnl?: number
+          started_at?: string
+          status?: string
+          stop_loss_pct?: number | null
+          stopped_at?: string | null
+          take_profit_pct?: number | null
+          trader_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allocation?: number
+          copy_ratio?: number
+          created_at?: string
+          id?: string
+          pnl?: number
+          started_at?: string
+          status?: string
+          stop_loss_pct?: number | null
+          stopped_at?: string | null
+          take_profit_pct?: number | null
+          trader_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copy_subscriptions_trader_id_fkey"
+            columns: ["trader_id"]
+            isOneToOne: false
+            referencedRelation: "copy_traders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copy_traders: {
+        Row: {
+          aum: number
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          followers: number
+          handle: string
+          id: string
+          is_verified: boolean
+          markets: string[]
+          max_drawdown: number
+          min_allocation: number
+          name: string
+          performance_fee: number
+          risk_level: string
+          roi_30d: number
+          roi_all: number
+          status: string
+          strategy: string
+          updated_at: string
+          win_rate: number
+        }
+        Insert: {
+          aum?: number
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          followers?: number
+          handle: string
+          id?: string
+          is_verified?: boolean
+          markets?: string[]
+          max_drawdown?: number
+          min_allocation?: number
+          name: string
+          performance_fee?: number
+          risk_level?: string
+          roi_30d?: number
+          roi_all?: number
+          status?: string
+          strategy?: string
+          updated_at?: string
+          win_rate?: number
+        }
+        Update: {
+          aum?: number
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          followers?: number
+          handle?: string
+          id?: string
+          is_verified?: boolean
+          markets?: string[]
+          max_drawdown?: number
+          min_allocation?: number
+          name?: string
+          performance_fee?: number
+          risk_level?: string
+          roi_30d?: number
+          roi_all?: number
+          status?: string
+          strategy?: string
+          updated_at?: string
+          win_rate?: number
+        }
+        Relationships: []
+      }
+      copy_trades: {
+        Row: {
+          closed_at: string | null
+          entry_price: number
+          exit_price: number | null
+          id: string
+          opened_at: string
+          pnl_pct: number
+          side: string
+          status: string
+          symbol: string
+          trader_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          entry_price?: number
+          exit_price?: number | null
+          id?: string
+          opened_at?: string
+          pnl_pct?: number
+          side?: string
+          status?: string
+          symbol: string
+          trader_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          entry_price?: number
+          exit_price?: number | null
+          id?: string
+          opened_at?: string
+          pnl_pct?: number
+          side?: string
+          status?: string
+          symbol?: string
+          trader_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copy_trades_trader_id_fkey"
+            columns: ["trader_id"]
+            isOneToOne: false
+            referencedRelation: "copy_traders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crypto_addresses: {
         Row: {
           address: string
@@ -1104,8 +1276,22 @@ export type Database = {
       }
     }
     Functions: {
+      adjust_copy_allocation: {
+        Args: { _delta: number; _subscription_id: string }
+        Returns: Json
+      }
       claim_welcome_bonus: { Args: never; Returns: Json }
       expire_old_deposits: { Args: never; Returns: number }
+      follow_trader: {
+        Args: {
+          _amount: number
+          _copy_ratio?: number
+          _stop_loss?: number
+          _take_profit?: number
+          _trader_id: string
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1154,6 +1340,7 @@ export type Database = {
         Args: { _card_id: string; _status: string }
         Returns: Json
       }
+      stop_copy_trading: { Args: { _subscription_id: string }; Returns: Json }
       unload_virtual_card: {
         Args: { _amount: number; _card_id: string }
         Returns: Json
